@@ -64,7 +64,7 @@ gitleaks dir . --redact -v       # expected: "no leaks found" (uses .gitleaks.to
 git check-ignore .env            # once Git exists; expected output: .env
 ```
 
-### L2 The lab starts in Docker — Rehearsed 2026-11-04 (main compose: healthy, no host port; dev override not yet run)
+### L2 The lab starts in Docker — Rehearsed 2026-11-05 on a clean clone (main compose: healthy, no host port; dev override: 127.0.0.1:8000, /docs 200, 0 `/_test` paths)
 ```powershell
 docker compose up -d --build
 docker compose ps                # expected: eventsim "running (healthy)"; PORTS column empty, no 0.0.0.0
@@ -142,19 +142,22 @@ Seed 42 places the canaries in **attendee 26, 55, 15** (notes), **event 16** (in
 
 For the last line, also try each full value from the canary list in place of `EG-CANARY`; each one must also return `[]`.
 
-### L7 First AI tool call — Not rehearsed (no Gemini key)
+### L7 First AI tool call — Rehearsed 2026-11-05 (`gemini-3.5-flash`, served as `gemini-3.6-flash`; passed, 761 tokens)
+A `503 UNAVAILABLE` ("high demand") is Google's side: wait and retry. An `SSL: CERTIFICATE_VERIFY_FAILED` error means Avast is scanning HTTPS: add the exception `https://generativelanguage.googleapis.com/*` (Avast → Settings → General → Exceptions).
 EventSim must be running in dev mode, and `.env` must contain `GEMINI_API_KEY` and `GEMINI_MODEL`.
 ```powershell
 python scripts\first_tool_call.py
 ```
 Expected: `"tool_calls": [{"name": "get_event", "args": {"event_id": 12}}]`, an answer naming the event, its venue and its date, every `checks` value `true`, `"passed": true`, and exit code 0. The key is never printed. The script makes at most 2 Gemini calls. The full record goes to `logs/first_tool_call.jsonl`.
 
-### L8 Git and CI — Not rehearsed (no Git yet)
+### L8 Git and CI — Rehearsed 2026-11-05 (CI status read by Aya)
 ```powershell
-git log --oneline                # expected: a line "S0: EventSim baseline"
+git log --oneline main           # expected: a line "S0: EventSim baseline" (c5cea87)
 git tag                          # expected: sprint-0
+git remote -v                    # expected: origin https://github.com/EyaNasfi/eventguard.git
+gh run list --limit 3            # expected: the runs with "completed success"
 ```
-Then on GitHub → Actions, the latest run on `main` must be green (checks, gitleaks and lab jobs).
+If `gh run list` says "error connecting to api.github.com", open <https://github.com/EyaNasfi/eventguard/actions> instead. The latest run on `main` must be green (checks, gitleaks and lab jobs). A VPN or proxy can cause that error, see `docs/environment.md`.
 
 ---
 

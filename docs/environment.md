@@ -50,7 +50,23 @@ Diagnosis (read-only checks): the Store package `MicrosoftCorporationII.WindowsS
 ## Git settings
 
 - `user.name = Aya NASFI`; `user.email` = provided by Aya. Set **per repository** (`git config`, not `--global`).
-- 2026-11-04: `git init -b main` done, `pre-commit install` done. No commit yet (waiting for the email).
+- 2026-11-04: `git init -b main` done, `pre-commit install` done.
+- 2026-11-05: baseline commit `c5cea87` + tag `sprint-0`; remote `origin = https://github.com/EyaNasfi/eventguard.git` (private), pushed by Aya. `gh auth setup-git` makes Git use the gh login (account EyaNasfi, keyring).
+- The pre-commit gitleaks hook uses the installed binary, not the upstream hook (which downloads Go). See `.pre-commit-config.yaml`.
+
+## Gemini (2026-11-05)
+
+- Free-tier key from Google AI Studio, stored only in `.env` (53 characters; never printed or logged).
+- `GEMINI_MODEL = gemini-3.5-flash`. On 2026-11-05 the API listed 22 Flash models for this key (2.5 → 3.8, plus `-latest` aliases and previews). `gemini-3.8-flash` gave 503 (high demand) twice. Aliases (`gemini-flash-latest`) and `-preview` models are avoided for reproducibility.
+- The API reported `model_version = gemini-3.6-flash` for a `gemini-3.5-flash` request, so the served version must be logged on every run.
+
+## Avast HTTPS scanning (2026-11-05)
+
+Avast Web Shield intercepts HTTPS: the certificate presented for `generativelanguage.googleapis.com` was issued by "Avast Web/Mail Shield Root". Windows trusts that root but Python (certifi) does not, which gives `SSL: CERTIFICATE_VERIFY_FAILED`. Fix: Aya added the Avast exceptions `https://generativelanguage.googleapis.com/*` and `https://api.github.com/*`. After that, the certificate came from Google Trust Services (WE2). If pip, Docker builds or gh fail with TLS errors, check Avast first.
+
+## Network note (2026-11-05)
+
+A virtual adapter ("Connexion au réseau local 2") uses DNS `198.18.0.1/2`, which is typical of a VPN or proxy tool in fake-IP/TUN mode. Some names fail to resolve now and then: `go.dev` (pre-commit), `api.github.com` (`gh run list`), and direct DNS queries time out. `git push` to github.com works. If gh or pip fail with a connection error, turn off the VPN/proxy and retry. The agent shell cannot use the gh login (keyring), so Aya runs `gh` and reads the CI status on github.com.
 - `core.autocrlf = input` on Windows. Files are committed with LF and the working tree is not converted, so shell scripts and Dockerfiles stay valid inside Linux containers. `.gitattributes` forces `eol=lf` for text files as a second guard.
 
 ## Note on OneDrive

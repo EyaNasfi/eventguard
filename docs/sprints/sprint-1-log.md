@@ -158,3 +158,63 @@ I rehearsed manual guide checks L1 (except gitleaks and git), L3, L4, L5, L6 and
 **Waiting for Aya.** A4 Git email, A5 Gemini key + model in `.env`, A6 private remote URL.
 
 **Not run.** No commit, no tag, no push, no CI run, no first Gemini call.
+---
+
+## 2026-11-05 — Baseline commit and tag (Step 1, A4 done)
+
+**Done.**
+- Local `user.email` set (repository scope). Before the commit: `pytest` 96 passed, eventsim coverage 97%, ruff, ruff format and mypy clean.
+- The first commit attempt failed. The upstream gitleaks pre-commit hook builds gitleaks from source and downloads Go from `go.dev`, which the agent shell cannot resolve (`getaddrinfo failed`; github.com and pypi.org are reachable). `.pre-commit-config.yaml` now runs the installed gitleaks 8.30.1 as a local hook (`gitleaks git --pre-commit --staged --redact`). CI keeps `gitleaks-action` (SR-13).
+- Hook controls:
+  - positive: a staged random fake `ghp_…` token gave "leaks found: 1", exit 1;
+  - negative: after removing it, "no leaks found", exit 0.
+- Commit `c5cea87` "S0: EventSim baseline" (47 files, the only commit; the hooks gitleaks, ruff, ruff format and mypy all passed). Annotated tag `sprint-0`.
+- `gitleaks git .` over the history: 1 commit scanned, no leaks.
+
+**Note.** The baseline includes the docs as they stood before this entry. Later Sprint 0 closing updates go on a branch, never directly to `main`.
+
+**Waiting for Aya.** A5 Gemini key + model in `.env`; A6 private remote URL + `gh auth login`.
+---
+
+## 2026-11-05 — Push, CI and Step 2 checks
+
+**Done.**
+- Aya created the private repo `EyaNasfi/eventguard`, ran `gh auth login` and `gh auth setup-git`, then pushed `main` and the tag `sprint-0`.
+- CI on `main`: `checks`, `gitleaks` and `lab` are all green. Aya read this on the Actions page; the agent could not reach `api.github.com` (VPN/proxy DNS, see `environment.md`).
+- Clean clone in `D:\dev\eventguard-clean` (HEAD = `origin/main`), `.env` from `.env.example`, no-cache build:
+  - healthy, no published port;
+  - reference script in the network: 10 draft events, 30 speakers;
+  - uid 1000, no internet.
+- Dev override: `127.0.0.1:8000`, `/docs` 200, 0 `/_test` paths, reset without token 403.
+- `sprint-0-status.md` §4d: every P0 item met except the first Gemini tool call.
+- Docs updated on branch `s0/close-sprint-0` (not on `main`).
+
+**Not run.** `scripts/first_tool_call.py` (A5: key not filled yet).
+
+**Unsure.** The first clean-clone build attempt failed without a usable message; the retry passed. I suspect the flaky DNS, but this is not proven.
+---
+
+## 2026-11-05 — First Gemini tool call: Sprint 0 closed
+
+**Done.**
+- Gemini key in `.env` (filled by Aya, never shown).
+- First API call: `SSL: CERTIFICATE_VERIFY_FAILED`. The cause was Avast HTTPS scanning (issuer "Avast Web/Mail Shield Root"). Aya added Avast exceptions for `generativelanguage.googleapis.com` and `api.github.com`; afterwards the issuer was Google Trust Services.
+- Listed the Flash models for the key (22).
+- Run log, all three tries in `logs/first_tool_call.jsonl`:
+  - `gemini-3.8-flash`: 503 UNAVAILABLE, twice;
+  - `gemini-3.5-flash` (served as `gemini-3.6-flash`): one `get_event(12)` call, correct answer, 5/5 checks, 761 tokens, 4.2 s, **passed**.
+- `.env` now has `GEMINI_MODEL=gemini-3.5-flash`. The log does not contain the key (checked).
+- `sprint-0-status.md` §4d: **P0 met, Sprint 0 closed.**
+
+**Unsure / for the PL.** The requested and served model versions differ. S1-06 run logging must record `model_version` from every response.
+
+**Next.** Step 4: S1-02 (gateway + MCP) on branch `s1/S1-02-gateway-mcp`.
+---
+
+## 2026-11-05 — CI fix on PR #1 (gitleaks job)
+
+**Problem.** On the first `pull_request` run, `gitleaks/gitleaks-action@v2` failed with `403 Resource not accessible by integration` on `GET /repos/EyaNasfi/eventguard/pulls/1/commits`. The workflow token only had `contents: read`; the API asked for `pull_requests=read` (header `x-accepted-github-permissions`). The job never reached the scan. This was not a leak.
+
+**Fix.** The `gitleaks` job now has job-level `permissions: contents: read, pull-requests: read`. Read-only; the other jobs are unchanged.
+
+**Not yet verified.** The PR run after the push.
