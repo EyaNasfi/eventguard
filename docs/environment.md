@@ -50,7 +50,13 @@ Diagnosis (read-only checks): the Store package `MicrosoftCorporationII.WindowsS
 ## Git settings
 
 - `user.name = Aya NASFI`; `user.email` = provided by Aya. Set **per repository** (`git config`, not `--global`).
-- 2026-11-04: `git init -b main` done, `pre-commit install` done. No commit yet (waiting for the email).
+- 2026-11-04: `git init -b main` done, `pre-commit install` done.
+- 2026-11-05: baseline commit `c5cea87` + tag `sprint-0`; remote `origin = https://github.com/EyaNasfi/eventguard.git` (private), pushed by Aya. `gh auth setup-git` makes Git use the gh login (account EyaNasfi, keyring).
+- The pre-commit gitleaks hook uses the installed binary, not the upstream hook (which downloads Go). See `.pre-commit-config.yaml`.
+
+## Network note (2026-11-05)
+
+A virtual adapter ("Connexion au réseau local 2") uses DNS `198.18.0.1/2`, which is typical of a VPN or proxy tool in fake-IP/TUN mode. Some names fail to resolve now and then: `go.dev` (pre-commit), `api.github.com` (`gh run list`), and direct DNS queries time out. `git push` to github.com works. If gh or pip fail with a connection error, turn off the VPN/proxy and retry. The agent shell cannot use the gh login (keyring), so Aya runs `gh` and reads the CI status on github.com.
 - `core.autocrlf = input` on Windows. Files are committed with LF and the working tree is not converted, so shell scripts and Dockerfiles stay valid inside Linux containers. `.gitattributes` forces `eol=lf` for text files as a second guard.
 
 ## Note on OneDrive

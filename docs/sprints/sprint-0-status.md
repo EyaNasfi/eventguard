@@ -90,7 +90,21 @@ Run by the agent on this machine (Docker 29.9.2, Compose v5.6.1, WSL 2):
 
 `.env` was created by the agent from `.env.example`, with random EventSim tokens that were never printed; the Gemini fields are left for Aya. Still missing for P0: the **clean-clone** run (needs Git), the **CI** run (needs the remote), and the **first Gemini tool call** (needs the key).
 
-## 5. Blocking questions for the project lead
+## 4d. Update 2026-11-05 — Step 2 checks (PL decision #1)
+
+| P0 exit item | Status | Evidence |
+|---|---|---|
+| Git baseline | **Met** | Commit `c5cea87` "S0: EventSim baseline", the only commit on `main`, annotated tag `sprint-0`. Hooks passed (gitleaks, ruff, ruff format, mypy). `gitleaks git .` over the history: no leaks. |
+| Private remote | **Met** | `https://github.com/EyaNasfi/eventguard.git`. Aya pushed `main` and `sprint-0` (push output in the session log). |
+| CI green | **Met (reported by Aya)** | First run on `main`: jobs `checks`, `gitleaks` and `lab` all green. Aya read this on the GitHub Actions page. The agent could not read the run itself (`api.github.com` unreachable from this PC, see `environment.md`). |
+| Clean-clone `docker compose up` | **Met** | `git clone` into `D:\dev\eventguard-clean` (outside OneDrive, HEAD = `origin/main` = `c5cea87`). `.env` copied from `.env.example` only, `docker compose build --no-cache`, `up -d --wait` → eventsim **healthy**, ports `8000/tcp` only (not published). The first build attempt failed without a usable error, probably the flaky DNS; the retry built cleanly. |
+| Reference script inside the compose network | **Met** | `docker compose exec -T eventsim python -m eventsim.reference --source 2026 --target 2027` → exit 0. 2027: **10 events, all `draft`**; speakers still **30**. Container `uid=1000(eventsim)`; internet from `lab_internal` blocked (`ConnectError`). |
+| Dev override | **Met** | `-f docker-compose.yml -f docker-compose.dev.yml` → `127.0.0.1:8000->8000/tcp`, `/docs` 200, `/openapi.json` 23 paths, **0** under `/_test`, `POST /_test/reset` without `X-Test-Token` → 403. Stack removed afterwards (`down -v`). |
+| First Gemini tool call (`scripts/first_tool_call.py`) | **Not met** | Not run: `GEMINI_API_KEY` / `GEMINI_MODEL` not yet filled in `.env` (A5). |
+
+**Verdict:** P0 is met except for the first Gemini tool call. Sprint 0 closes when `first_tool_call.py` passes.
+
+## 5. Blocking questions for the project lead (2026-11-02; answered by PL decision #1)
 
 1. **Where is the Sprint 0 code?** Is there a remote repository (GitHub/GitLab URL) or an archive that should be cloned here?
 2. **If Sprint 0 was never built**, do you want me to build P0 now (and re-plan S1 scope), or will you provide the existing work?
