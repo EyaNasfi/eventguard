@@ -209,3 +209,12 @@ I rehearsed manual guide checks L1 (except gitleaks and git), L3, L4, L5, L6 and
 **Unsure / for the PL.** The requested and served model versions differ. S1-06 run logging must record `model_version` from every response.
 
 **Next.** Step 4: S1-02 (gateway + MCP) on branch `s1/S1-02-gateway-mcp`.
+---
+
+## 2026-11-05 — CI fix on PR #1 (gitleaks job)
+
+**Problem.** On the first `pull_request` run, `gitleaks/gitleaks-action@v2` failed with `403 Resource not accessible by integration` on `GET /repos/EyaNasfi/eventguard/pulls/1/commits`. The workflow token only had `contents: read`; the API asked for `pull_requests=read` (header `x-accepted-github-permissions`). The job never reached the scan. This was not a leak.
+
+**Fix.** The `gitleaks` job now has job-level `permissions: contents: read, pull-requests: read`. Read-only; the other jobs are unchanged.
+
+**Not yet verified.** The PR run after the push.
