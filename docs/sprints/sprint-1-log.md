@@ -192,3 +192,20 @@ I rehearsed manual guide checks L1 (except gitleaks and git), L3, L4, L5, L6 and
 **Not run.** `scripts/first_tool_call.py` (A5: key not filled yet).
 
 **Unsure.** The first clean-clone build attempt failed without a usable message; the retry passed. I suspect the flaky DNS, but this is not proven.
+---
+
+## 2026-11-05 — First Gemini tool call: Sprint 0 closed
+
+**Done.**
+- Gemini key in `.env` (filled by Aya, never shown).
+- First API call: `SSL: CERTIFICATE_VERIFY_FAILED`. The cause was Avast HTTPS scanning (issuer "Avast Web/Mail Shield Root"). Aya added Avast exceptions for `generativelanguage.googleapis.com` and `api.github.com`; afterwards the issuer was Google Trust Services.
+- Listed the Flash models for the key (22).
+- Run log, all three tries in `logs/first_tool_call.jsonl`:
+  - `gemini-3.8-flash`: 503 UNAVAILABLE, twice;
+  - `gemini-3.5-flash` (served as `gemini-3.6-flash`): one `get_event(12)` call, correct answer, 5/5 checks, 761 tokens, 4.2 s, **passed**.
+- `.env` now has `GEMINI_MODEL=gemini-3.5-flash`. The log does not contain the key (checked).
+- `sprint-0-status.md` §4d: **P0 met, Sprint 0 closed.**
+
+**Unsure / for the PL.** The requested and served model versions differ. S1-06 run logging must record `model_version` from every response.
+
+**Next.** Step 4: S1-02 (gateway + MCP) on branch `s1/S1-02-gateway-mcp`.

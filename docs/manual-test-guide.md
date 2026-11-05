@@ -142,7 +142,8 @@ Seed 42 places the canaries in **attendee 26, 55, 15** (notes), **event 16** (in
 
 For the last line, also try each full value from the canary list in place of `EG-CANARY`; each one must also return `[]`.
 
-### L7 First AI tool call — Not rehearsed (no Gemini key)
+### L7 First AI tool call — Rehearsed 2026-11-05 (`gemini-3.5-flash`, served as `gemini-3.6-flash`; passed, 761 tokens)
+A `503 UNAVAILABLE` ("high demand") is Google's side: wait and retry. An `SSL: CERTIFICATE_VERIFY_FAILED` error means Avast is scanning HTTPS: add the exception `https://generativelanguage.googleapis.com/*` (Avast → Settings → General → Exceptions).
 EventSim must be running in dev mode, and `.env` must contain `GEMINI_API_KEY` and `GEMINI_MODEL`.
 ```powershell
 python scripts\first_tool_call.py

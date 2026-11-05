@@ -100,9 +100,11 @@ Run by the agent on this machine (Docker 29.9.2, Compose v5.6.1, WSL 2):
 | Clean-clone `docker compose up` | **Met** | `git clone` into `D:\dev\eventguard-clean` (outside OneDrive, HEAD = `origin/main` = `c5cea87`). `.env` copied from `.env.example` only, `docker compose build --no-cache`, `up -d --wait` → eventsim **healthy**, ports `8000/tcp` only (not published). The first build attempt failed without a usable error, probably the flaky DNS; the retry built cleanly. |
 | Reference script inside the compose network | **Met** | `docker compose exec -T eventsim python -m eventsim.reference --source 2026 --target 2027` → exit 0. 2027: **10 events, all `draft`**; speakers still **30**. Container `uid=1000(eventsim)`; internet from `lab_internal` blocked (`ConnectError`). |
 | Dev override | **Met** | `-f docker-compose.yml -f docker-compose.dev.yml` → `127.0.0.1:8000->8000/tcp`, `/docs` 200, `/openapi.json` 23 paths, **0** under `/_test`, `POST /_test/reset` without `X-Test-Token` → 403. Stack removed afterwards (`down -v`). |
-| First Gemini tool call (`scripts/first_tool_call.py`) | **Not met** | Not run: `GEMINI_API_KEY` / `GEMINI_MODEL` not yet filled in `.env` (A5). |
+| First Gemini tool call (`scripts/first_tool_call.py`) | **Met** (2026-11-05 10:07 UTC) | Free-tier key. Model requested `gemini-3.5-flash`; the API reported `model_version = gemini-3.6-flash`. One `get_event(event_id=12)` call; the answer gave name "People Forum", venue "Halle Brumaire" and date 2026-07-13, so all 5 checks were true. 761 tokens, 4.2 s, exit 0. Two earlier tries with `gemini-3.8-flash` got `503 UNAVAILABLE` (high demand), and both are logged as failed. Record: `logs/first_tool_call.jsonl` (gitignored; the key is absent, checked). |
 
-**Verdict:** P0 is met except for the first Gemini tool call. Sprint 0 closes when `first_tool_call.py` passes.
+**Verdict (2026-11-05): the P0 exit criterion is met. Sprint 0 is closed.**
+
+**Open point for the project lead.** Google served `gemini-3.6-flash` to a request for `gemini-3.5-flash`. The served version must therefore be logged on every run (S1-06), and the config hash alone does not pin the model.
 
 ## 5. Blocking questions for the project lead (2026-11-02; answered by PL decision #1)
 
