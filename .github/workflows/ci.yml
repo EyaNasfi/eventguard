@@ -21,7 +21,9 @@ jobs:
       - name: mypy
         run: mypy
       - name: pytest + coverage
-        run: pytest --cov=eventsim --cov-report=term-missing --cov-report=xml --cov-fail-under=80
+        run: >-
+          pytest --cov=eventsim --cov=gateway --cov=config
+          --cov-report=term-missing --cov-report=xml --cov-fail-under=80
       - uses: actions/upload-artifact@v4
         with:
           name: coverage
@@ -55,5 +57,17 @@ jobs:
           set -a; . ./.env; set +a
           python -m eventsim.reference --source 2026 --target 2027 | tee report.json
           python -c "import json; r = json.load(open('report.json')); assert len(r['events']) == 10, r"
+      - name: gateway over MCP inside the Docker network (S1-02)
+        run: |
+          docker compose exec -T gateway python - < scripts/gateway_probe.py | tee probe.txt
+          grep -q "env has EVENTSIM_TEST_TOKEN: False" probe.txt
+          grep -q "env has GEMINI_API_KEY: False" probe.txt
+          grep -q "no bearer -> 401" probe.txt
+          grep -q "EventSim admin token as bearer -> 401" probe.txt
+          grep -q "27 tools" probe.txt
+          grep -q "\[reader\] create_event -> is_error=True: EventSim answered HTTP 403" probe.txt
+          test "$(grep -c 'raw_api_call .* -> is_error=True: refused by the gateway' probe.txt)" -eq 4
+          grep -q "\[editor\] create_event -> is_error=False" probe.txt
+          test -z "$(docker compose port gateway 8100)"
       - if: always()
-        run: docker compose logs eventsim
+        run: docker compose logs eventsim gateway
