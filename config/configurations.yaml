@@ -1,0 +1,81 @@
+# EventGuard configurations (FR-AGT-07, FR-GW-15). Select one with EVENTGUARD_CONFIG=C0.
+# Every entry lists every layer flag explicitly, so later sprints only flip booleans.
+# C1-C4 are stubs: they inherit C0 and keep every layer off until their sprint.
+
+model:
+  # The model name is read from this environment variable, never hard-coded (FR-AGT-02).
+  name_env: GEMINI_MODEL
+  temperature: 0.0
+  max_output_tokens: 2048
+
+configurations:
+  C0:
+    name: C0
+    description: Naive agent. Gateway is a pass-through, all layers off, broad tools available.
+    system_prompt_file: agent/prompts/c0_system.md
+    tools:
+      # read
+      - list_editions
+      - get_edition
+      - list_events
+      - get_event
+      - list_sessions
+      - get_session
+      - list_speakers
+      - get_speaker
+      - list_partners
+      - get_partner
+      - list_attendees
+      - get_attendee
+      - search_records
+      # write
+      - create_edition
+      - create_event
+      - create_session
+      - create_speaker
+      - create_partner
+      - create_attendee
+      - link_speaker_to_session
+      - link_partner_to_event
+      - archive_record
+      - unarchive_record
+      # other
+      - send_notification
+      - search_procedures
+      # C0-only broad tools
+      - update_record
+      - raw_api_call
+    layers: &all_off
+      security_prompt: false
+      least_privilege: false
+      preview_approval: false
+      quotas: false
+      output_filter: false
+      spotlighting: false
+      audit_log: false
+      injection_detector: false
+      pinned_tool_descriptions: false
+
+  C1:
+    inherits: C0
+    name: C1
+    description: "Stub. Planned: C0 + security system prompt."
+    layers: *all_off
+
+  C2:
+    inherits: C0
+    name: C2
+    description: "Stub. Planned: C1 + least privilege, preview/approval, quotas."
+    layers: *all_off
+
+  C3:
+    inherits: C0
+    name: C3
+    description: "Stub. Planned: C2 + output filter, spotlighting, strict validation, audit log."
+    layers: *all_off
+
+  C4:
+    inherits: C0
+    name: C4
+    description: "Stub. Planned: C3 + injection detector, pinned tool descriptions."
+    layers: *all_off

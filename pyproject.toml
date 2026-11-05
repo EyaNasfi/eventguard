@@ -1,0 +1,61 @@
+[project]
+name = "eventguard"
+version = "0.1.0"
+description = "EventGuard: securing and evaluating a tool-using agent on a simulated event platform (EventSim)."
+authors = [{ name = "Aya NASFI" }]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi==0.162.0",
+    "sqlmodel==0.0.48",
+    "uvicorn==0.54.0",
+    "httpx==0.28.1",
+    "pydantic==2.14.2",
+    "pydantic-settings==2.16.2",
+    "PyYAML==6.0.3",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+agent = [
+    "google-genai==2.34.0",
+]
+dev = [
+    "google-genai==2.34.0",
+    "pre-commit==4.3.0",
+    "pytest==9.2.0",
+    "pytest-cov==7.1.0",
+    "ruff==0.17.3",
+    "mypy==2.4.1",
+    "types-PyYAML",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["eventsim*", "config*"]
+
+[tool.setuptools.package-data]
+config = ["configurations.yaml"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM"]
+ignore = ["B008"]  # FastAPI Depends() in defaults
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["eventsim", "config", "tests", "scripts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

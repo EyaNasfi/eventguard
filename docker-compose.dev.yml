@@ -1,0 +1,13 @@
+# Development override: exposes EventSim on the host loopback only, for the harness and debugging.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# Do not use in agent evaluation runs where the agent could reach the host.
+services:
+  eventsim:
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks:
+      - lab_internal
+      - dev_host
+
+networks:
+  dev_host: {}

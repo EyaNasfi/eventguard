@@ -1,0 +1,14 @@
+# gitleaks configuration (SR-13): default rules, minus local-only folders that are never committed.
+title = "EventGuard gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Local, gitignored folders (virtualenv, caches, runtime data)"
+paths = [
+  '''(^|/|\\)\.venv(/|\\)''',
+  '''(^|/|\\)(\.mypy_cache|\.ruff_cache|\.pytest_cache|__pycache__)(/|\\)''',
+  '''(^|/|\\)(data|logs|results|vectorstore_data|chroma)(/|\\)''',
+  '''(^|/|\\)\.env$''',
+]

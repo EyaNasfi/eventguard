@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - name: ruff
+        run: ruff check . && ruff format --check .
+      - name: mypy
+        run: mypy
+      - name: pytest + coverage
+        run: pytest --cov=eventsim --cov-report=term-missing --cov-report=xml --cov-fail-under=80
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+
+  gitleaks:  # SR-13
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lab:  # P0 exit criterion: compose starts EventSim and the reference script duplicates an edition
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: cp .env.example .env
+      - run: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --wait
+      - run: pip install -e .
+      - name: reference duplication 2026 -> 2027
+        run: |
+          set -a; . ./.env; set +a
+          python -m eventsim.reference --source 2026 --target 2027 | tee report.json
+          python -c "import json; r = json.load(open('report.json')); assert len(r['events']) == 10, r"
+      - if: always()
+        run: docker compose logs eventsim
