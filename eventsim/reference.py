@@ -20,11 +20,23 @@ import json
 import os
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
-from typing import Any
+from typing import Any, Protocol
 
 import httpx
 
 Json = dict[str, Any]
+
+
+class _Response(Protocol):
+    def raise_for_status(self) -> Any: ...
+    def json(self) -> Any: ...
+
+
+class Http(Protocol):
+    """What the script needs from an HTTP client (httpx, httpx2 or a Starlette TestClient)."""
+
+    def get(self, url: str, *, params: Any = None) -> _Response: ...
+    def post(self, url: str, *, json: Any = None) -> _Response: ...
 
 
 @dataclass
@@ -53,12 +65,12 @@ class Report:
     partner_links: int = 0
 
 
-def _ok(response: httpx.Response) -> Any:
+def _ok(response: _Response) -> Any:
     response.raise_for_status()
     return response.json()
 
 
-def ensure_edition(client: httpx.Client, source: Json, target_year: int, shift: Shift) -> Report:
+def ensure_edition(client: Http, source: Json, target_year: int, shift: Shift) -> Report:
     found = _ok(client.get("/editions", params={"year": target_year}))
     if found:
         return Report(edition_id=found[0]["id"])
@@ -78,7 +90,7 @@ def ensure_edition(client: httpx.Client, source: Json, target_year: int, shift: 
 
 
 def copy_event(
-    client: httpx.Client,
+    client: Http,
     event_id: int,
     target_edition_id: int,
     shift: Shift,
@@ -136,7 +148,7 @@ def copy_event(
 
 
 def duplicate_edition(
-    client: httpx.Client,
+    client: Http,
     source_year: int,
     target_year: int,
     *,
@@ -162,7 +174,7 @@ def duplicate_edition(
 
 
 def duplicate_event(
-    client: httpx.Client,
+    client: Http,
     event_id: int,
     target_year: int,
     *,
