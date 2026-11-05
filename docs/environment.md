@@ -64,6 +64,12 @@ Diagnosis (read-only checks): the Store package `MicrosoftCorporationII.WindowsS
 
 Avast Web Shield intercepts HTTPS: the certificate presented for `generativelanguage.googleapis.com` was issued by "Avast Web/Mail Shield Root". Windows trusts that root but Python (certifi) does not, which gives `SSL: CERTIFICATE_VERIFY_FAILED`. Fix: Aya added the Avast exceptions `https://generativelanguage.googleapis.com/*` and `https://api.github.com/*`. After that, the certificate came from Google Trust Services (WE2). If pip, Docker builds or gh fail with TLS errors, check Avast first.
 
+**More Avast exceptions (2026-11-05, S1-02).** `pip install mcp` failed with `Connection broken: InvalidChunkLength`: Avast was intercepting `pypi.org` and `files.pythonhosted.org` too. Aya added the exceptions `https://pypi.org/*`, `https://files.pythonhosted.org/*`, `https://github.com/*`, `https://registry-1.docker.io/*`, `https://auth.docker.io/*` and `https://production.cloudflare.docker.com/*`, which makes 8 in total. After that, the certificates came from GlobalSign and the install worked.
+
+**Avast breaks loopback HTTP to `/mcp` (2026-11-05).** Any request to `127.0.0.1` whose path ends in a `/mcp` segment (`/mcp`, `/MCP`, `/mcp/`, `/x/mcp`) gets a broken reply on the host: `transfer-encoding: chunked`, no body, then a reset or a timeout. The server sent a correct response (traced at the ASGI level). It reproduces with a minimal ASGI app, while `/mcpx`, `/tools` and `/sse` are fine. Avast's firewall and IDS (`afwServ`, `aswidsagent`) are running. Traffic between containers is **not** affected (verified with an MCP client inside the gateway container). Consequences:
+- host-side gateway tests use in-memory ASGI transports;
+- do not try to reach the gateway from Windows. Its port is not published anyway (SR-14).
+
 ## Network note (2026-11-05)
 
 A virtual adapter ("Connexion au réseau local 2") uses DNS `198.18.0.1/2`, which is typical of a VPN or proxy tool in fake-IP/TUN mode. Some names fail to resolve now and then: `go.dev` (pre-commit), `api.github.com` (`gh run list`), and direct DNS queries time out. `git push` to github.com works. If gh or pip fail with a connection error, turn off the VPN/proxy and retry. The agent shell cannot use the gh login (keyring), so Aya runs `gh` and reads the CI status on github.com.

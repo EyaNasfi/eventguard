@@ -218,3 +218,73 @@ I rehearsed manual guide checks L1 (except gitleaks and git), L3, L4, L5, L6 and
 **Fix.** The `gitleaks` job now has job-level `permissions: contents: read, pull-requests: read`. Read-only; the other jobs are unchanged.
 
 **Not yet verified.** The PR run after the push.
+---
+
+## 2026-11-05 — S1-02 Gateway skeleton + MCP server with C0 tools (FR-AGT-03, FR-GW-01, FR-GW-04, SR-01, SR-14)
+
+Branch `s1/S1-02-gateway-mcp`.
+
+**What I did.**
+- New module `gateway/`:
+  - `registry.py`: `ToolSpec` holds name, description, JSON schema and handler, as plain data. `descriptions_hash()` is for SR-10.
+  - `pipeline.py`: `Layer` with `before_call` / `after_call`. The pipeline is empty in C0. A layer flag that is on but not implemented stops start-up.
+  - `platform.py`: the `PlatformClient` protocol, the seam for an inwink connector (NFR-10), and `EventSimClient`, the only HTTP code to EventSim. It holds one EventSim token per role and sends only the caller's.
+  - `identity.py`: the bearer verifier. One gateway token per role, constant-time compare.
+  - `tools.py`: the **27 C0 tools**, the same list as `config/configurations.yaml`.
+  - `server.py`: MCP over Streamable HTTP.
+  - `settings.py`, `__main__.py`, `Dockerfile`.
+- `raw_api_call` and `EventSimClient` share one **hard deny rule**, valid in every configuration:
+  - the path is percent-decoded (up to 5 times) and dot segments are removed;
+  - any first segment starting with `_test` is refused, case-insensitive;
+  - absolute URLs, `//host`, backslashes, control characters and `DELETE` are refused too;
+  - refusals are logged (`WARNING gateway.tools refused raw_api_call …`).
+- What is checked is what is sent.
+- `search_procedures` is declared and returns a clear "not available yet (built in S1-04)" error.
+- `docker-compose.yml`: new `gateway` service, internal network only, **no port published, not even in dev**. Each service now gets an explicit variable list instead of the whole `.env`:
+  - the gateway has neither `EVENTSIM_TEST_TOKEN` nor `GEMINI_API_KEY`;
+  - EventSim no longer receives the Gemini key.
+- `.env.example`: `GATEWAY_TOKEN_*`. `.env`: three random gateway tokens added by the agent (never printed; all 7 tokens are distinct).
+- CI:
+  - coverage now covers `gateway` and `config`;
+  - the `lab` job runs `scripts/gateway_probe.py` inside the network and asserts each line, including that the gateway port is not published.
+- `mcp==2.3.0` is pinned (extras `gateway`, `dev`); `httpx2==2.16.0` in `dev`. `gateway` is added to mypy and to the package.
+- ADR-003 (SDK, transport, auth). Manual guide L10. README.
+
+**Why.**
+- `mcp` 2.x is the current line.
+- The low-level `Server` takes tools as data, whereas FastMCP (`MCPServer` in 2.x) derives schemas from signatures.
+- Stateless HTTP means every request is authenticated, with no session to hijack.
+- The deny rule sits in the client too, so no future tool can bypass it. The gateway does not even hold the test token.
+
+**How to verify.**
+```powershell
+pytest tests/test_gateway.py tests/test_gateway_units.py -q --cov=gateway    # 77 passed, gateway 95%
+pytest -q                                                                      # 174 passed
+ruff check .; ruff format --check .; mypy                                      # clean (37 files)
+docker compose up -d --build --wait; docker compose ps                         # both healthy, no host port
+Get-Content scripts\gateway_probe.py -Raw | docker compose exec -T gateway python -
+```
+
+**Agent results (2026-11-05).**
+- 174 passed; total coverage 95%; gateway modules 94–100% (`__main__` 0%, it is a 10-line launcher).
+- Probe in Docker:
+  - no bearer → 401; EventSim token used as bearer → 401;
+  - modern client: protocol `2026-07-28`; legacy-handshake client: `2025-11-25`; both see 27 tools;
+  - reader `create_event` → `EventSim answered HTTP 403: role 'reader' cannot create events`;
+  - editor `create_event` in 2027 → ok;
+  - `/_test/reset` and `/%5Ftest/snapshot` → refused and logged.
+- DB reset to seed 42 afterwards.
+
+**Problems met.**
+1. **Avast breaks loopback HTTP to `/mcp`.**
+   - Symptom: on the host, any request whose path ends in `/mcp` got a chunked header with no body, then a reset or timeout.
+   - Narrowing down: the ASGI trace showed a correct 401 with content-length. A minimal ASGI app reproduces it, while `/mcpx` and `/tools` are fine.
+   - Docker-internal traffic is not affected.
+   - Fix: tests use in-memory ASGI transports (`httpx2.ASGITransport`), which are the same app and the same HTTP handling.
+2. **Avast HTTPS scanning corrupted `pip install`.** Aya added exceptions for PyPI, GitHub and Docker Hub.
+3. **Installing `mcp` brings `httpx2`, and Starlette's `TestClient` switches to it.** `eventsim/reference.py` now types its client with a small `Http` protocol (typing only).
+4. **`.env.example` was missing from the working tree** (deleted, cause unknown). Restored with `git restore`; `.env` was checked intact (names and lengths only).
+
+**Unsure.**
+- n8n compatibility is only simulated (legacy handshake). The real n8n MCP Client Tool node is tested in S1-03, with `mcp==1.30.0` as the documented fallback.
+- In C0 the SDK does not validate arguments against the schemas. EventSim validates bodies (422), and strict validation is FR-GW-03 (C3).
