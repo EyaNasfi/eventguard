@@ -2,13 +2,15 @@
 
 Research lab that builds, secures and evaluates a tool-using AI agent on **EventSim**, a simulated event platform. All data is generated and fictional.
 
-Status: Sprint 0 (EventSim) done during Sprint 1. Gateway, n8n agent and benchmark are coming in S1. See [docs/sprints/](docs/sprints/).
+Status: Sprint 0 closed (tag `sprint-0`). S1-01 (configurations) and S1-02 (gateway + MCP) done; the n8n agent and the benchmark are coming in S1. See [docs/sprints/](docs/sprints/).
 
 ## Layout
 
 | Folder | Content |
 |---|---|
 | `eventsim/` | Simulated platform: FastAPI + SQLModel, seeded generator, test endpoints, reference duplication script |
+| `config/` | Configurations C0–C4 (`configurations.yaml`), loader and config hash |
+| `gateway/` | The only path from the agent to EventSim: MCP server (Streamable HTTP, `http://gateway:8100/mcp`, internal only), tool registry → layer pipeline → EventSim client. Bearer token per role (ADR-003) |
 | `tests/` | pytest suite |
 | `docs/` | decisions, threat model, sprint logs and reports |
 
@@ -16,7 +18,7 @@ Status: Sprint 0 (EventSim) done during Sprint 1. Gateway, n8n agent and benchma
 
 ```bash
 cp .env.example .env          # then replace every change-me value
-docker compose up -d --build  # EventSim on the internal network only
+docker compose up -d --build  # EventSim + gateway, on the internal network only
 # host access for the harness / debugging (127.0.0.1 only):
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
@@ -26,7 +28,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```bash
 py -3.12 -m venv .venv && .venv/Scripts/pip install -e ".[dev]"   # Windows
 ruff check . && ruff format --check . && mypy
-pytest --cov=eventsim
+pytest --cov=eventsim --cov=gateway --cov=config
 ```
 
 ## Reference duplication (FR-SIM-10)

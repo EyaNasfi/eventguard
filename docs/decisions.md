@@ -49,3 +49,29 @@ Format: one ADR per decision. Status is one of Proposed / Accepted / Superseded.
 - **Accepted as-is:** the six table names; links, outbox, user, canary and setting as extra tables; `/_test/*` with its own token and its off switch; the reference script's behaviour (archived records not copied, copies start as `draft`, dates shifted, speakers and partners re-linked, attendees and `internal_notes` not copied).
 - **Archiving a whole edition (UC3)** stays non-cascading. Archiving the edition record does not archive its events, so archiving a whole edition is a composed plan: each event, then the edition. This is consistent with FR-SIM-05, where duplication is composed too, and every write goes through the gateway one at a time. The archive-edition procedure sheet (S1-04) must say this.
 - **Evidence (2026-11-02, local).** 96 tests pass. Coverage on `eventsim/` is 97%. The reference script, run live, gives 10 events in 2027 and still 30 speakers. `docs/manual-test-guide.md` L3–L6 rehearsed with the expected codes.
+
+## ADR-003 — MCP SDK, transport and gateway authentication (S1-02)
+
+- **Date:** 2026-11-05 · **Status:** Accepted for S1. The n8n part is still to be confirmed in S1-03/S1-05.
+- **Context.** The brief asks for "the official Python MCP SDK (`mcp`, FastMCP), Streamable HTTP, pinned version" and a bearer token per user on the MCP endpoint (SR-14, FR-GW-04). On 2026-11-05, PyPI has two maintained lines:
+  - `mcp` **1.30.0** (7 Sep 2026), which still has `FastMCP`;
+  - `mcp` **2.3.0** (2 Oct 2026). In 2.x, `FastMCP` is renamed `MCPServer` and several APIs changed (migration guide referenced in `mcp/server/fastmcp.py`).
+- **Options.**
+  - (a) `mcp` 1.30 + FastMCP.
+  - (b) `mcp` 2.3 + `MCPServer`.
+  - (c) `mcp` 2.3 + the low-level `Server`.
+- **Decision.** (c), `mcp==2.3.0`, pinned in `pyproject.toml` (extras `gateway` and `dev`).
+  - 2.x is the current major line, and the gateway is new code, so there is nothing to migrate.
+  - The low-level `Server` takes tools as **data** (name, description, JSON schema), exactly what the registry holds and what SR-10 will hash. `MCPServer`/FastMCP derives schemas from Python signatures instead.
+  - **Transport:** Streamable HTTP at `http://gateway:8100/mcp`, `stateless_http=True`. Every request is authenticated on its own, and no server session state can outlive a token. DNS-rebinding protection is on, with allowed hosts `gateway`, `localhost` and `127.0.0.1`.
+  - **Authentication:** the SDK's `BearerAuthBackend` + `RequireAuthMiddleware`, with our `StaticTokenVerifier`. There is one gateway token per role (`GATEWAY_TOKEN_*`), compared in constant time. Each token maps to exactly one EventSim user, and the gateway calls EventSim with that user's token only.
+  - Resource-server-only setup: no OAuth endpoints, no protected-resource metadata. A missing or unknown bearer gets 401 before any tool runs.
+- **Evidence.**
+  - 77 gateway tests pass (`tests/test_gateway.py`, `tests/test_gateway_units.py`); coverage on `gateway/` is 95%.
+  - Live probe in Docker: a modern client negotiated protocol `2026-07-28` and a legacy-handshake client negotiated `2025-11-25`. Both listed 27 tools.
+  - Responses: no or wrong bearer → 401; reader `create_event` → clean tool error "EventSim answered HTTP 403: role 'reader' cannot create events"; `/_test` paths → refused and logged.
+- **Consequences.**
+  - The 2.x API is younger: the low-level context and middleware are marked "provisional" in the SDK source, which is one more reason to pin.
+  - If n8n's MCP Client Tool cannot talk to this server, the fallback is `mcp==1.30.0` with the same registry and pipeline; only `gateway/server.py` changes.
+  - The SDK brings `httpx2`. Once it is installed, Starlette's `TestClient` uses it, so `eventsim/reference.py` now types its client as a small `Http` protocol (typing only, no behaviour change).
+- **Finding: the antivirus breaks loopback MCP.** On the development PC, any loopback HTTP request whose path ends in `/mcp` gets a broken response: `chunked` with no body, then a reset or timeout. This happens even with a 10-line ASGI app, while `/mcpx`, `/tools` and `/sse` are fine. Avast (`aswidsagent`, `afwServ`) is the likely cause. Traffic inside Docker is not affected (verified). Host-side tests therefore use in-memory ASGI transports; see `docs/environment.md`.
