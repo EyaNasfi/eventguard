@@ -26,7 +26,7 @@ export function ComingLater({ title, purpose, resumes, needs }: ComingLaterProps
         <p className="m-0 mt-2 max-w-[62ch] text-sm text-muted">
           This page is paused on purpose (PL decision #3), so it never shows numbers that were not measured. It waits for:
         </p>
-        <ul className="mt-2 mb-0 flex flex-col gap-1 pl-5 text-sm">
+        <ul className="mt-2 mb-0 flex list-disc flex-col gap-1 pl-5 text-sm">
           {needs.map((n) => (
             <li key={n}>{n}</li>
           ))}

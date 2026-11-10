@@ -83,3 +83,31 @@ Checks: `tsc -b --noEmit` clean, `eslint .` 0 problems, `vite build` OK. Capture
   - "Sample data · not measured" label on Assistant, Approvals, Audit log and Events (mock mode); Gateway, Attack lab, Results marked "coming later" in the sidebar and replaced by paused pages (no sample numbers shown).
 - Live dev server on :5174 stopped; 0 headless Edge left.
 - Next: Step 5 (branch, gitignore, gitleaks, CI job, commit; no push).
+
+## 07:20 — Step 5: commit (local only)
+- Branch `s1/web-frontend-p1-3` created from `main`; commit `5e4054f` (75 files: web/, docs, CLAUDE.md, `.claude/settings.json`, PRODUCT.md, `.impeccable/surfaces/`, `.gitignore`, CI). **Not pushed, not merged, no upstream.**
+- Not committed on purpose: third-party design-skill folders (`.agents/`, `.claude/skills/`, `.claude/agents/`, `.codex/`, `.github/agents|hooks|skills/`, `skills-lock.json`) and `.claude/settings.local.json` — they predate tonight and are Aya's call.
+- `.gitignore`: + `web/node_modules/`, `web/dist/`, `*.tsbuildinfo`, `.impeccable/review|mocks|questions/`. Checked with `git check-ignore`: `web/.env.local` (via `.env.*`), node_modules, dist, review screenshots all ignored.
+- **gitleaks: not installed on this machine** (not on PATH, not found on disk; `docs/environment.md` records it on the other PC). Did not install software. Substitute: staged files scanned for every `.env` value (5) and secret patterns (Google key, GitHub token, private key, sk-, long Bearer literal) → **0 hits** (script prints counts only).
+- CI: new `web` job in `.github/workflows/ci.yml`. Same commands run locally: `npm ci` OK (303 packages), `npm run typecheck` OK, `npm run lint` OK, `npm run build` OK, bundle grep for `_test`/`TEST_TOKEN` → none. CI itself has not run (nothing pushed).
+- No git hooks are installed in this clone (`.git/hooks` has samples only), so pre-commit did not run.
+- Next: Step 6 (status.md with screenshots, START-HERE update, final summary).
+
+## 07:50 — Step 6: status, guide, stop
+- `docs/frontend/status.md`: pages with screenshots (`docs/frontend/screenshots/*.png`, 8 files, 1440×900, mock mode), live-mode check table, endpoints the paused/sample pages need (method, path, response shape).
+- `docs/START-HERE.md` §11–12 updated with tonight's results.
+- Paused pages list bullets fixed (`ComingLater.tsx`). Final checks: typecheck, lint, build clean; bundle has no `_test`/`TEST_TOKEN`; 0 headless Edge.
+- **Dev servers left running (not stopped):** `vite --port 5173`, `--port 5174`, `--port 5175` (node PIDs 21412, 30476, 34484 and their npx parents). Stopping their tasks did not end the node processes, and killing them was **denied by the auto-mode permission check**, so they were left as they are. Harmless (local, idle) but should be closed.
+- Phases 4–7 and Sprint 2: **not started** (PL decision #3).
+
+## Summary (for Aya)
+1. **Done:** `docs/START-HERE.md`, your guide to the whole repo. Read it first.
+2. **Done:** web UI Phases 1–3 (Assistant, Approvals, Audit log, Events) plus every P1 and the cross-page fixes from the Phase 3 reviews; Gateway, Attack lab and Results paused as "coming later".
+3. **Done:** live mode for Events through a dev proxy (tokens stay server-side, none in the bundle; demo controls hidden in live mode).
+4. **Not done:** browser checks against Docker EventSim, because **Docker Desktop was not running**. API checks ran in-process against the real EventSim code instead: 10/10 PASS.
+5. **Done:** committed on local branch `s1/web-frontend-p1-3` (2 commits). **Nothing pushed, nothing merged.**
+6. **Problem:** gitleaks is not installed on this PC. A substitute scan found 0 hits; install gitleaks and run it before any push.
+7. **Problem:** 3 idle Vite dev servers are still running (ports 5173–5175); the agent was not allowed to kill them.
+8. **Housekeeping:** 28 headless Edge processes (plus 82 children) cleaned up; the capture script now always closes its browser. Subagents set to Sonnet (`.claude/settings.json`); no-push rule in ADR-004 and `CLAUDE.md`.
+9. **Found, not changed:** the gateway (S1-02) exists only on the unmerged branch `origin/s1/S1-02-gateway-mcp`; PL decision #2 and the spec are not in the repo.
+10. **Look at first:** START-HERE §11 (your decisions), then `docs/frontend/status.md`, then run `cd web; npm run dev` → Demo guide steps 1–3.

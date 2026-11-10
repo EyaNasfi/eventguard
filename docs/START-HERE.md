@@ -218,11 +218,22 @@ Every page that shows sample data carries a visible "Sample data · not measured
 - Add the **Requirements Specification v1.0** to the repo so requirement IDs can be checked.
 - Tell the agent what **PL decision #2** was (it is not recorded).
 - Start **Docker Desktop** before the next session if live checks against the dockerised EventSim are wanted.
-- Close the leftover headless Edge processes if any remain (see `docs/overnight-log.md`).
+- Stop three leftover dev servers from tonight if they are still running: `node … vite --port 5173`, `--port 5174` (live mode) and `--port 5175`. Stopping the agent task did not end them, and the agent was not allowed to kill them (see `docs/overnight-log.md`). Task Manager → Node.js processes, or restart the PC.
+- Install gitleaks on this PC (`winget install Gitleaks.Gitleaks`) and run `gitleaks git --staged` / `gitleaks detect` before pushing.
 
-## 12. Tonight's results
+## 12. Tonight's results (2026-11-10)
 
-See `docs/overnight-log.md` (summary at the end) and `docs/frontend/status.md`.
+- **Built:** web UI Phases 1–3: the Assistant, Approvals, Audit log, Events, shell and component gallery. Gateway, Attack lab and Results are paused pages marked "coming later". Screenshots are in `docs/frontend/screenshots/`, page by page in `docs/frontend/status.md`.
+- **Phase 3 review:** every P1 finding fixed, and the cross-page inconsistencies cleaned up. The table is in `docs/overnight-log.md` (Step 3).
+- **Live mode:**
+  - The Events page reads and archives on a real EventSim through the dev proxy.
+  - **Docker was not running**, so the browser checks against the dockerised EventSim were **not run**.
+  - The same API checks were run in-process against the real EventSim code, and all of them passed. "EventSim down" shows a clear error.
+  - The built bundle has no test-endpoint strings and no tokens.
+- **Committed** on the local branch `s1/web-frontend-p1-3`. **Not pushed, not merged.**
+  - gitleaks is not installed on this PC. The staged files were scanned for `.env` values and secret patterns instead: 0 hits.
+- **Rules recorded:** never push without your explicit request (ADR-004, `CLAUDE.md`). Subagents use Sonnet (`.claude/settings.json`).
+- **Look at first:** the summary at the end of `docs/overnight-log.md`.
 
 ---
 
