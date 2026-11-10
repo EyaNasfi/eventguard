@@ -49,3 +49,10 @@ Format: one ADR per decision. Status is one of Proposed / Accepted / Superseded.
 - **Accepted as-is:** the six table names; links, outbox, user, canary and setting as extra tables; `/_test/*` with its own token and its off switch; the reference script's behaviour (archived records not copied, copies start as `draft`, dates shifted, speakers and partners re-linked, attendees and `internal_notes` not copied).
 - **Archiving a whole edition (UC3)** stays non-cascading. Archiving the edition record does not archive its events, so archiving a whole edition is a composed plan: each event, then the edition. This is consistent with FR-SIM-05, where duplication is composed too, and every write goes through the gateway one at a time. The archive-edition procedure sheet (S1-04) must say this.
 - **Evidence (2026-11-02, local).** 96 tests pass. Coverage on `eventsim/` is 97%. The reference script, run live, gives 10 events in 2027 and still 30 speakers. `docs/manual-test-guide.md` L3–L6 rehearsed with the expected codes.
+
+## ADR-004 — Never push without an explicit request (PL decision #3)
+
+- **Date:** 2026-11-10 · **Status:** Accepted (standing rule for every session)
+- **Context.** The overnight front-end run (PL decision #3) was unattended. Pushing makes work public to the remote and starts CI, which Aya wants to control herself.
+- **Decision.** No `git push` and no `gh` command that changes the remote (PRs, merges, releases, settings) unless Aya explicitly asks for a push in the current session. Work stays on local branches; merging to `main` also needs her explicit go. The rule is repeated in `CLAUDE.md` so every agent session loads it.
+- **Consequences.** CI does not run on new work until Aya pushes; the agent runs the same commands locally and records the results.

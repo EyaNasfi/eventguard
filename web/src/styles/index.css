@@ -1,0 +1,413 @@
+@import 'tailwindcss';
+
+/*
+ * EventGuard tokens. Components use only these semantic names.
+ * Color carries meaning only: allowed, blocked, needs approval, warning, info.
+ * Every status token is always paired with a word or an icon in the UI.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Ground and structure (Run-of-Show Cue Sheet) */
+  --bg: #121417;
+  --surface-1: #1a1d22;
+  --surface-2: #21252b;
+  --surface-3: #2a2f36;
+  --rail: #0e1013;
+  --line: #2b2f36;
+  --line-strong: #3b414a;
+  /* Boundaries that identify a control (inputs, selects, switches): ≥ 3:1, WCAG 1.4.11 */
+  --control-line: #68707a;
+
+  /* Text (all pairs ≥ 4.5:1 on --bg, --surface-1, --surface-2 and --surface-3) */
+  --text: #ece8df;
+  --text-muted: #a0a6af;
+  --text-on-accent: #121417;
+
+  /* Meaning */
+  --ok: #6ccb8f;
+  --hold: #f0b84e;
+  --stop: #f2705f;
+  --warn: #f09a5e;
+  --info: #8ab4f8;
+  --focus: #a9c8fb;
+
+  --ok-bg: color-mix(in oklab, var(--ok) 13%, var(--surface-1));
+  --hold-bg: color-mix(in oklab, var(--hold) 13%, var(--surface-1));
+  --stop-bg: color-mix(in oklab, var(--stop) 14%, var(--surface-1));
+  --warn-bg: color-mix(in oklab, var(--warn) 13%, var(--surface-1));
+  --info-bg: color-mix(in oklab, var(--info) 13%, var(--surface-1));
+
+  --ok-line: color-mix(in oklab, var(--ok) 50%, var(--line));
+  --hold-line: color-mix(in oklab, var(--hold) 50%, var(--line));
+  --stop-line: color-mix(in oklab, var(--stop) 50%, var(--line));
+  --warn-line: color-mix(in oklab, var(--warn) 50%, var(--line));
+  --info-line: color-mix(in oklab, var(--info) 50%, var(--line));
+
+  /* Type */
+  --eg-sans: 'Figtree Variable', ui-sans-serif, system-ui, sans-serif;
+  --eg-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Mono', monospace;
+
+  /* Motion (Emil: strong ease-out for UI, never ease-in) */
+  --eg-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --eg-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-press: 140ms;
+  --dur-fast: 160ms;
+  --dur-base: 220ms;
+
+  --radius: 3px;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-rail: var(--rail);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-control: var(--control-line);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-on-accent: var(--text-on-accent);
+  --color-ok: var(--ok);
+  --color-hold: var(--hold);
+  --color-stop: var(--stop);
+  --color-warn: var(--warn);
+  --color-info: var(--info);
+  --color-ok-bg: var(--ok-bg);
+  --color-hold-bg: var(--hold-bg);
+  --color-stop-bg: var(--stop-bg);
+  --color-warn-bg: var(--warn-bg);
+  --color-info-bg: var(--info-bg);
+  --color-ok-line: var(--ok-line);
+  --color-hold-line: var(--hold-line);
+  --color-stop-line: var(--stop-line);
+  --color-warn-line: var(--warn-line);
+  --color-info-line: var(--info-line);
+
+  --font-sans: var(--eg-sans);
+  --font-mono: var(--eg-mono);
+
+  /* Fixed rem scale, ratio ≈ 1.15 (product UI) */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.1rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.4rem;
+  --text-md: 1rem;
+  --text-md--line-height: 1.5rem;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.65rem;
+  --text-xl: 1.4375rem;
+  --text-xl--line-height: 1.9rem;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 2.2rem;
+
+  --radius-xs: 2px;
+  --radius-sm: var(--radius);
+  --radius-md: 4px;
+
+  --ease-out: var(--eg-ease-out);
+  --ease-in-out: var(--eg-ease-in-out);
+}
+
+@layer base {
+  html {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--eg-sans);
+    font-size: 100%;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-variant-numeric: tabular-nums;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--info) 38%, transparent);
+    color: var(--text);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--info);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  a {
+    color: inherit;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--eg-mono);
+    font-variant-ligatures: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer utilities {
+  .mono {
+    font-family: var(--eg-mono);
+    font-variant-ligatures: none;
+    font-size: 0.95em;
+    letter-spacing: -0.01em;
+  }
+
+  /* Small uppercase field label, as on a carbon-copy form */
+  .field-label {
+    font-size: var(--text-2xs);
+    line-height: var(--text-2xs--line-height);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  /* sr-only / not-sr-only come from Tailwind itself so responsive variants work. */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Component motion. Every rule here explains a state change; all degrade to opacity or nothing. ── */
+
+.eg-skeleton {
+  background: var(--surface-3);
+  animation: eg-pulse 1.4s ease-in-out infinite;
+}
+@keyframes eg-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* Dialog: modal stays centred, enters from 0.97 (never from scale 0). */
+.eg-dialog {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--dur-base) var(--eg-ease-out),
+    transform var(--dur-base) var(--eg-ease-out),
+    overlay var(--dur-base) allow-discrete,
+    display var(--dur-base) allow-discrete;
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+.eg-dialog::backdrop {
+  background: rgb(5 6 8 / 0.62);
+  transition: background-color var(--dur-base) var(--eg-ease-out);
+  @starting-style {
+    background: rgb(5 6 8 / 0);
+  }
+}
+
+/* Toast: enters from where it lives (bottom), quickly. */
+.eg-toast {
+  transition:
+    opacity var(--dur-base) var(--eg-ease-out),
+    transform var(--dur-base) var(--eg-ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eg-skeleton {
+    animation: none;
+  }
+  .eg-dialog,
+  .eg-toast {
+    transform: none;
+    @starting-style {
+      transform: none;
+    }
+  }
+}
+
+/* Popover panels grow from their trigger (top right), never from centre. */
+.eg-pop {
+  transform-origin: top right;
+  transition:
+    opacity var(--dur-fast) var(--eg-ease-out),
+    transform var(--dur-fast) var(--eg-ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.97) translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eg-pop {
+    @starting-style {
+      transform: none;
+    }
+  }
+}
+
+/* ── The calling script: cue numbers sit in a margin behind one vertical rule. ── */
+.eg-script::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 4.5rem;
+  border-left: 1px solid var(--line);
+  pointer-events: none;
+}
+@media (min-width: 40rem) {
+  .eg-script::before {
+    left: 5.5rem;
+  }
+}
+
+/* ── Phase 2 motion: every rule explains a state change. Live arrivals only. ── */
+
+/* A tool call enters the script (state indication + spatial: it arrives at the bottom). */
+.eg-cue-in {
+  animation: eg-rise var(--dur-base) var(--eg-ease-out) both;
+}
+/* Checkpoint stamps appear in pipeline order: the call moving through the gateway (delay set inline, 60ms apart). */
+.eg-stamp-in {
+  animation: eg-stamp 180ms var(--eg-ease-out) both;
+}
+/* The verdict lands after the last checkpoint. */
+.eg-verdict-in {
+  animation: eg-stamp 200ms var(--eg-ease-out) 300ms both;
+}
+/* The write preview arrives under its cue. */
+.eg-preview-in {
+  animation: eg-rise 240ms var(--eg-ease-out) 120ms both;
+}
+/* State swap inside an existing element (approve, reject, expire): crossfade with a little blur. */
+.eg-swap {
+  animation: eg-swap 200ms var(--eg-ease-out) both;
+}
+/* Chat lines. */
+.eg-msg-in {
+  animation: eg-rise 200ms var(--eg-ease-out) both;
+}
+
+@keyframes eg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes eg-stamp {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@keyframes eg-swap {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+/* Agent working: three dots in sequence; constant motion, linear-ish pulse. */
+.eg-working {
+  display: inline-flex;
+  gap: 3px;
+}
+.eg-working span {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--text-muted);
+  animation: eg-dot 1s ease-in-out infinite;
+}
+.eg-working span:nth-child(2) {
+  animation-delay: 160ms;
+}
+.eg-working span:nth-child(3) {
+  animation-delay: 320ms;
+}
+@keyframes eg-dot {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Fewer and gentler: keep the opacity that shows order and change, drop movement and blur. */
+  .eg-cue-in,
+  .eg-preview-in,
+  .eg-msg-in {
+    animation-name: eg-fade;
+  }
+  .eg-stamp-in,
+  .eg-verdict-in {
+    animation-name: eg-fade;
+    animation-delay: 0ms !important;
+  }
+  .eg-swap {
+    animation-name: eg-fade;
+  }
+  .eg-working span {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+@keyframes eg-fade {
+  from {
+    opacity: 0;
+  }
+}

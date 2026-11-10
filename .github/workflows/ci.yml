@@ -27,6 +27,28 @@ jobs:
           name: coverage
           path: coverage.xml
 
+  web:  # front end: install, typecheck, lint, build (mock mode; no tokens in CI)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: typecheck
+        run: npm run typecheck
+      - name: lint
+        run: npm run lint
+      - name: build
+        run: npm run build
+      - name: no test-endpoint strings in the bundle
+        run: "! grep -rl -e '_test' -e 'TEST_TOKEN' dist"
+
   gitleaks:  # SR-13
     runs-on: ubuntu-latest
     permissions:

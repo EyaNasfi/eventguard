@@ -23,3 +23,13 @@ logs/
 results/
 vectorstore_data/
 chroma/
+
+# web front end
+web/node_modules/
+web/dist/
+*.tsbuildinfo
+
+# design tooling runtime (review screenshots, decision sketches, scratch)
+.impeccable/review/
+.impeccable/mocks/
+.impeccable/questions/
