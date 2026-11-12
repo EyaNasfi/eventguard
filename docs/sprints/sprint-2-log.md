@@ -267,7 +267,7 @@ Branch `s2/S2-09-verification`. Every check was run (not reasoned): **43 PASS, 0
 4. **Not done / partial:** demo 3 (duplicate) is partial on flash-lite (agent used a made-up id); the 50-run pilot is Sprint 3.
 5. **Blocker met:** free-tier quota, 20 requests/day for `gemini-3.5-flash`; `.env` now says `gemini-3.5-flash-lite` (original value in a comment). Please decide the Sprint 3 model and billing.
 6. **Verification:** 43 PASS, 0 FAIL (`docs/sprints/sprint-2-verification.md`).
-7. **Not on GitHub:** local `main` has 10 merge commits after `origin/main` (web front end + S2-00 … S2-09), branches `s2/*`, `backup/web-frontend-before-rewrite`, and the tag `tasks-v1`. Nothing was pushed.
+7. **Not on GitHub:** local `main` is 28 commits (11 merges) ahead of `origin/main` (web front end + S2-00 … S2-09), branches `s2/*`, `backup/web-frontend-before-rewrite`, and the tag `tasks-v1`. Nothing was pushed.
 8. **Processes:** the lab containers I started were stopped at the end (`docker compose stop`, data kept); no dev server or browser left. Docker Desktop is still running.
 9. **Read first:** `README.md`, then `docs/reports/month-2-facts.md`, then `docs/sprints/sprint-2-report.md` (questions in §9).
 10. **Sprint 3 was not started.**
