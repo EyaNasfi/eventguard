@@ -100,3 +100,22 @@ Branch `s2/S2-01-gateway-merge` = `origin/s1/S1-02-gateway-mcp` rebased onto loc
 **Unsure.** The Avast `/mcp` loopback problem (ADR-003) was on Aya's PC; this PC was not tested for it because the gateway has no host port.
 
 **Next:** S2-02 (n8n in compose + identity spike).
+
+## 2026-11-12 23:45 — S2-02 n8n in compose + identity spike (FR-AGT-01, FR-GW-04, SR-14)
+
+Branch `s2/S2-02-n8n-identity`. Timebox half a day; done in about 1 h.
+
+- **Compose:** new `n8n` service pinned to `n8nio/n8n:2.47.5@sha256:e29e9cc9…` (the `stable` tag on 2026-11-12). Published on `127.0.0.1:5678` only; the only host port in the main compose file. Networks: `lab_internal` (to reach the gateway) + new `egress` (internet, for Gemini). Data in the named volume `n8n_data`. `N8N_ENCRYPTION_KEY` from `.env`. Telemetry, templates and version checks off.
+- **Local owner + API key:** created through n8n's REST API by a scratchpad script (pre-approved, PL decision #5). Fictional owner email, random password and the API key are in `.env` only; never printed.
+- **`agent/n8n_lab.py`:** creates the lab credentials from `.env` (one bearer per role for the gateway, plus Gemini), imports workflows by name and maps credential names to local ids. 4 unit tests against a fake n8n API.
+- **Identity spike** (`scripts/n8n_identity_spike.py`): real call n8n → gateway → EventSim works; the endpoint URL accepts a session value; credential headers accept expressions. Decision in **ADR-005**: one bearer per role, one workflow per role from a template; session id in `/mcp?eg_session=…` for log correlation.
+- **Header probe setup (for re-runs):** a throwaway container `eg-spike-echo` (image `python:3.12-slim`, alias `echo` on `eventguard_lab_internal`) printed request headers with `Authorization` redacted. It was removed after the run. The two spike workflows were deactivated.
+- `.env.example`: `N8N_ENCRYPTION_KEY`, `N8N_OWNER_EMAIL`, `N8N_OWNER_PASSWORD`, `N8N_API_KEY`.
+
+**How to verify:** manual guide L15.
+
+**Unsure.**
+- Only `$execution.id` was tested inside a credential expression; whether chat data (`$json`) resolves there was not tested, because the URL route already works.
+- The MCP *Client Tool* node (used by the AI Agent) shares the same connection code (`shared/utils.js`) as the standalone node tested here; it is exercised for real in S2-04.
+
+**Next:** S2-03 (procedure sheets + retrieval).

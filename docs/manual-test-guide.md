@@ -239,3 +239,14 @@ Get-Content scripts\gateway_probe.py -Raw | docker compose exec -T gateway pytho
 # expected: no bearer -> 401; 27 tools; reader create_event -> HTTP 403; /_test paths -> refused by the gateway
 ```
 Afterwards reset the seed: `curl.exe -s -o NUL -w $W -X POST -H $T -H $J --data "@scripts/payloads/reset-42.json" "$U/_test/reset"`.
+
+### L15 n8n in compose + identity spike (S2-02) — Rehearsed 2026-11-12
+`.env` needs `N8N_ENCRYPTION_KEY`, `N8N_OWNER_EMAIL`, `N8N_OWNER_PASSWORD` (fictional, local) and, after the owner exists, `N8N_API_KEY` (n8n > Settings > n8n API).
+```powershell
+docker compose up -d --build --wait
+docker compose ps        # eventsim, gateway, n8n healthy; only n8n has a host port: 127.0.0.1:5678->5678/tcp
+curl.exe -s -o NUL -w $W http://127.0.0.1:5678/healthz           # 200
+python -m agent.n8n_lab credentials                               # 3 gateway credentials + Gemini; prints names and ids only
+python -m scripts.n8n_identity_spike                              # "real call: 200 {...People Forum...}"
+```
+The header-probe half needs the throwaway echo container described in the sprint log (2026-11-12, S2-02); without it that line prints 500, which is expected. Open <http://localhost:5678> and log in with the owner account from `.env` to see the two "EG spike" workflows (left inactive).
