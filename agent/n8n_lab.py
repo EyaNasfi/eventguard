@@ -26,6 +26,24 @@ GATEWAY_CREDENTIAL = "EventGuard gateway ({role})"
 GEMINI_CREDENTIAL = "EventGuard Gemini"
 
 
+# Placeholders in exported workflows, filled from `.env` at import time only, so the files in
+# Git never hold these values (S2-04).
+PLACEHOLDERS = {
+    "__GEMINI_MODEL__": "GEMINI_MODEL",
+    "__EG_SYSTEM_PROMPT_CANARY__": "EG_SYSTEM_PROMPT_CANARY",
+}
+
+
+def render(text: str, env: dict[str, str]) -> str:
+    for placeholder, key in PLACEHOLDERS.items():
+        if placeholder in text:
+            value = env.get(key, "")
+            if not value:
+                raise SystemExit(f"{key} is empty in .env (needed by {placeholder})")
+            text = text.replace(placeholder, json.dumps(value)[1:-1])
+    return text
+
+
 def load_env() -> dict[str, str]:
     values = {k: v for k, v in dotenv_values(ROOT / ".env").items() if v is not None}
     return values
@@ -155,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"credential '{name}' -> id {cid}")
     else:
         for path in args.files:
-            workflow = json.loads(path.read_text(encoding="utf-8"))
+            workflow = json.loads(render(path.read_text(encoding="utf-8"), env))
             wid = n8n.import_workflow(workflow, activate=not args.no_activate)
             print(f"workflow '{workflow['name']}' -> id {wid}")
     return 0

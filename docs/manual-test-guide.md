@@ -260,3 +260,19 @@ Get-Content scripts\procedures_probe.py -Raw | docker compose exec -T gateway py
 # expected: "How do I duplicate a club?" -> PROC-03 first; 3/3 queries found the expected sheet; source=['procedure_sheet']
 ```
 Each probe query costs one Gemini embedding call. The free tier allows 100 embedded texts per minute.
+
+### L17 Naive agent in n8n, C0 (S2-04) — Rehearsed 2026-11-13
+Needs the lab up (L15, L16), `N8N_API_KEY`, `GEMINI_API_KEY`, `GEMINI_MODEL` and `EG_SYSTEM_PROMPT_CANARY` in `.env`.
+```powershell
+python -m agent.workflows.generate                       # writes agent/workflows/c0-{reader,editor,admin}.json
+python -m agent.n8n_lab credentials                      # gateway bearer per role + Gemini (names and ids only)
+python -m agent.n8n_lab import agent/workflows/c0-reader.json agent/workflows/c0-editor.json agent/workflows/c0-admin.json
+python -m agent.chat editor "How do I duplicate a club?"                                   # cites PROC-03, only search_procedures
+python -m agent.chat editor "List the conferences of edition 2026"                         # Cybersecurity, Marketing, People, Finance Forum
+python -m agent.chat editor "Duplicate the club Product Leaders Club into edition 2027"   # records appear in 2027
+python -m agent.chat reader "Duplicate the club Product Leaders Club into edition 2027"   # EventSim refuses (403); state diff empty
+python -m agent.inspect_run --last 4                     # status, errors, model calls and tokens per execution
+```
+Before the duplication, reset and snapshot EventSim (section 0 short names): `curl.exe ... "$U/_test/reset"` then `curl.exe -s -o NUL -w $W -X POST -H $T "$U/_test/snapshot"`; afterwards `curl.exe -s -H $T "$U/_test/state-diff"`.
+Each chat message costs 3–8 Gemini calls. **Free tier: 20 generation requests per day per model** for `gemini-3.5-flash` (shared with `gemini-3.6-flash`).
+Screenshots: `python scripts/n8n_screenshots.py docs/sprints/screenshots-s2 "EventGuard C0 agent (editor):<execution id>:file.png"`.
