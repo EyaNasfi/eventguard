@@ -233,3 +233,16 @@ Branch `s2/S2-07-agent-client-smoke`.
 **Question for the project lead.** Should the duplicate checker accept a year written inside a copied description ("its 2026 club" → "its 2027 club")? PROC-03 and the reference script say "same description", so `tasks-v1` counts it as a failure. Changing it means `tasks-v2`.
 
 **Next:** S2-08 (docs).
+
+## 2026-11-13 02:25 — S2-08 Docs (NFR-11)
+
+Branch `s2/S2-08-docs`.
+
+- `README.md` updated for the end of the night (status table, 5-minute start including n8n setup and ingestion, folders, glossary, links).
+- `docs/architecture.md` (new): the five services with networks, ports and secrets; the request path; trust boundaries B1–B6 as they are now; identity and correlation; reproducibility.
+- `docs/START-HERE.md`: §2 component table, §4 request walkthrough and §8 status (new Sprint 2 table) brought up to date.
+- `docs/sprints/sprint-2-report.md` (new): goal, tasks, demo checks, smoke results, tokens per run, identity decision, risks, what moves to S3, questions.
+- `agent/n8n_lab.py setup`: first-start owner account + API key, so a fresh clone needs no scratch script (re-run on this PC: "owner already set; API key kept").
+- ADRs written during the night: ADR-005 (identity), ADR-006 (retrieval), ADR-007 (task freeze), plus PL decision #2.
+
+**Next:** S2-09 (verification campaign), then stop.

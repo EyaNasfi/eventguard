@@ -4,6 +4,7 @@ Creates the lab credentials from `.env` and imports workflows. It never prints a
 credential values are sent to n8n (which stores them encrypted with N8N_ENCRYPTION_KEY) and
 only names and ids are reported.
 
+    python -m agent.n8n_lab setup                # first start: owner account + API key into .env
     python -m agent.n8n_lab credentials          # create or replace the lab credentials
     python -m agent.n8n_lab import FILE.json...  # import or update workflows, then activate them
 """
@@ -158,15 +159,56 @@ def create_lab_credentials(n8n: N8n, env: dict[str, str]) -> dict[str, str]:
     return made
 
 
+def set_env_value(name: str, value: str, path: Path = ROOT / ".env") -> None:
+    """Write NAME=value into .env (replacing an existing line). The value is never printed."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    out = [f"{name}={value}" if line.startswith(f"{name}=") else line for line in lines]
+    if not any(line.startswith(f"{name}=") for line in lines):
+        out.append(f"{name}={value}")
+    path.write_text("\n".join(out) + "\n", encoding="utf-8", newline="\n")
+
+
+def setup_owner_and_key(env: dict[str, str], transport: httpx.BaseTransport | None = None) -> str:
+    """First start of a local n8n: create the owner account (fictional, from .env) and an API
+    key, stored in .env as N8N_API_KEY. Safe to re-run: an existing owner or key is kept."""
+    base = env.get("N8N_URL", "http://127.0.0.1:5678")
+    http = httpx.Client(base_url=base, timeout=30, transport=transport)
+    owner = {
+        "email": env["N8N_OWNER_EMAIL"],
+        "firstName": "Lab",
+        "lastName": "Owner",
+        "password": env["N8N_OWNER_PASSWORD"],
+    }
+    created = http.post("/rest/owner/setup", json=owner)
+    login = http.post(
+        "/rest/login",
+        json={"emailOrLdapLoginId": owner["email"], "password": owner["password"]},
+    )
+    login.raise_for_status()
+    if env.get("N8N_API_KEY"):
+        return f"owner {'created' if created.is_success else 'already set'}; API key kept"
+    scopes = http.get("/rest/api-keys/scopes")
+    body: dict[str, Any] = {"label": "eventguard-lab", "expiresAt": None}
+    if scopes.is_success:
+        body["scopes"] = scopes.json()["data"]
+    made = http.post("/rest/api-keys", json=body).raise_for_status().json()["data"]
+    set_env_value("N8N_API_KEY", made.get("rawApiKey") or made["apiKey"])
+    return f"owner {'created' if created.is_success else 'already set'}; API key stored in .env"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("setup", help="create the local owner account and an API key (first start)")
     sub.add_parser("credentials")
     imp = sub.add_parser("import")
     imp.add_argument("files", nargs="+", type=Path)
     imp.add_argument("--no-activate", action="store_true")
     args = parser.parse_args(argv)
     env = load_env()
+    if args.cmd == "setup":
+        print(setup_owner_and_key(env))
+        return 0
     n8n = client_from_env(env)
     if args.cmd == "credentials":
         for name, cid in create_lab_credentials(n8n, env).items():
