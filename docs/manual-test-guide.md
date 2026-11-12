@@ -295,3 +295,11 @@ git tag --list tasks-v1                           # tasks-v1 (local tag; not pus
 Get-Content bench\tasks\DUP-01.yaml               # one task: id, category, role, seed, prompt, expected, checker, checker_params
 ```
 No Docker and no Gemini needed: controls run on an in-process EventSim at seed 42.
+
+### L20 Agent client + smoke run (S2-07) — Rehearsed 2026-11-13
+Needs the whole lab with the dev override (`.\scripts\lab-up.ps1 -Dev`), the workflows imported (L17) and the sheets ingested (L16).
+```powershell
+python -m bench.smoke --tasks PRC-01,RD-01,DUP-01,ARC-01,RD-02     # about 6 minutes (65 s pause between tasks)
+Get-Content results\smoke.jsonl -Tail 5                            # one line per task: passed, reasons, failure_class, tokens...
+```
+Each line carries task id, pass/fail, reasons, failure class, config hash, model and served version, temperature, seed, tasks version, git commit, latency, model calls and tokens, and the gateway tools used (matched by session id). Free tier: 15 generation requests per minute on `gemini-3.5-flash-lite`, hence the pause.
