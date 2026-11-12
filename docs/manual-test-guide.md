@@ -250,3 +250,13 @@ python -m agent.n8n_lab credentials                               # 3 gateway cr
 python -m scripts.n8n_identity_spike                              # "real call: 200 {...People Forum...}"
 ```
 The header-probe half needs the throwaway echo container described in the sprint log (2026-11-12, S2-02); without it that line prints 500, which is expected. Open <http://localhost:5678> and log in with the owner account from `.env` to see the two "EG spike" workflows (left inactive).
+
+### L16 Procedure sheets + retrieval (S2-03) — Rehearsed 2026-11-12
+```powershell
+python -m pytest tests/test_rag.py -q                      # sheets (18, 200-400 words, 5 sections), idempotent ingestion, retrieval
+docker compose up -d --build --wait                        # adds vectorstore and retriever (no host port)
+docker compose exec retriever python -m agent.rag.ingest   # first run: "embedded 90"; second run: "embedded 0 ... calls: 0"
+Get-Content scripts\procedures_probe.py -Raw | docker compose exec -T gateway python -
+# expected: "How do I duplicate a club?" -> PROC-03 first; 3/3 queries found the expected sheet; source=['procedure_sheet']
+```
+Each probe query costs one Gemini embedding call. The free tier allows 100 embedded texts per minute.

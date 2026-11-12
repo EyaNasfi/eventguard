@@ -122,3 +122,20 @@ Format: one ADR per decision. Status is one of Proposed / Accepted / Superseded.
   - No per-person identity: everyone using the editor workflow is "editor". Enough for the evaluation, where tasks are defined per role.
   - The Python agent loop (FR-AGT-09) is not needed in Sprint 3 for identity reasons.
   - If a query string is ever dropped by n8n, correlation falls back to timestamps; identity is unaffected.
+
+## ADR-006 — Procedure retrieval: retriever service, Chroma, gemini-embedding-2 (S2-03)
+
+- **Date:** 2026-11-12 · **Status:** Accepted for Sprint 2 (the vector store choice is final in Sprint 3)
+- **Context.** `search_procedures` must return sheet sections with their id (FR-AGT-04). The gateway has no internet access and no Gemini key (ADR-003, compose comments), and the vector store must sit on the internal network only (PL decision #4).
+- **Decision.**
+  - **`vectorstore`**: `chromadb/chroma:1.5.9` pinned by digest, internal network only, volume `chroma_data`.
+  - **`retriever`**: a small FastAPI service (`agent/rag/service.py`) on `lab_internal` + `egress`. It holds the Gemini key, embeds the query and asks Chroma. The gateway calls `POST http://retriever:8200/search`. So the gateway stays offline and keyless.
+  - **Interface:** `agent/rag/store.py` holds `VectorStore` and both implementations (`ChromaHttpStore` over the REST v2 API with plain httpx, `MemoryStore` for tests). Swapping the store changes this one file.
+  - **Embedding model:** `gemini-embedding-2`, 768 dimensions, in `config/configurations.yaml` (`retrieval` block, part of the config hash). Checked in the official docs on 2026-11-12: it is the current stable model; it has no `task_type`, so documents use the prefix `title: … | text: …` and queries `task: search result | query: …`.
+  - **Chunks:** one per sheet section (5 × 18 = 90), ids like `PROC-03#steps`, metadata `sheet_id`, `title`, `section`, `digest`.
+  - **Output:** `{sheet_id, title, section, text, source: "procedure_sheet"}`; `source` marks the text as untrusted for spotlighting later.
+- **Findings that shaped the code.**
+  - A list of plain strings sent to `embed_content` gives **one** merged embedding for `gemini-embedding-2`; one `Content` per text gives one embedding each.
+  - Free-tier quota is **100 embedded texts per minute per model** (counted per text, not per request). The embedder paces itself under 90 per minute and honours the API's `retryDelay`.
+  - Ingestion stores a digest per chunk and embeds only new or changed chunks: a re-run on unchanged sheets makes 0 calls.
+- **Consequences.** One more container. The retriever is on the internal network with the Gemini key but holds no EventSim token. Each `search_procedures` call costs one embedding request.

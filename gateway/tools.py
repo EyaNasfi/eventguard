@@ -8,12 +8,14 @@ request (FR-GW-03 strict validation is a C3 layer); EventSim validates bodies it
 
 import logging
 from collections.abc import Mapping
+from dataclasses import replace
 from typing import Any
 
 import httpx
 
 from gateway.pipeline import ToolCall, ToolResult
 from gateway.platform import PlatformClient, PlatformResponse, UnsafePathError
+from gateway.procedures import ProcedureSearch, make_handler
 from gateway.registry import Registry, ToolSpec
 
 log = logging.getLogger("gateway.tools")
@@ -203,8 +205,8 @@ async def _search_records(client: PlatformClient, call: ToolCall) -> ToolResult:
 
 
 async def _search_procedures(client: PlatformClient, call: ToolCall) -> ToolResult:
-    # Implemented in S1-04 (procedure sheets + Chroma retrieval).
-    return ToolResult("error", message="search_procedures is not available yet (built in S1-04)")
+    # Placeholder handler; `full_registry(procedures=...)` binds the real one (S2-03).
+    return ToolResult("error", message="search_procedures is not configured in this gateway")
 
 
 # ------------------------------------------------------------------ the C0 set
@@ -414,5 +416,11 @@ C0_TOOLS: list[ToolSpec] = [
 ]
 
 
-def full_registry() -> Registry:
-    return Registry(C0_TOOLS)
+def full_registry(procedures: ProcedureSearch | None = None, k_default: int = 4) -> Registry:
+    """All tools. With `procedures`, `search_procedures` queries the retriever (S2-03)."""
+    if procedures is None:
+        return Registry(C0_TOOLS)
+    handler = make_handler(procedures, k_default)
+    return Registry(
+        [replace(s, handler=handler) if s.name == "search_procedures" else s for s in C0_TOOLS]
+    )

@@ -119,3 +119,21 @@ Branch `s2/S2-02-n8n-identity`. Timebox half a day; done in about 1 h.
 - The MCP *Client Tool* node (used by the AI Agent) shares the same connection code (`shared/utils.js`) as the standalone node tested here; it is exercised for real in S2-04.
 
 **Next:** S2-03 (procedure sheets + retrieval).
+
+## 2026-11-13 00:30 — S2-03 Procedure sheets + retrieval (FR-AGT-04)
+
+Branch `s2/S2-03-procedures-rag`.
+
+- **18 sheets** in `procedures/` (PROC-01 … PROC-18), Markdown + YAML front matter (`id`, `title`, `roles`, `tags`, `version`), sections Purpose / Who can do this / Steps / Checks before and after / Common mistakes, 207–282 words each. Fictional and generic, built on EventSim entities and the gateway tool names; rules mirror the reference script and PL decision #2 (copies start as draft, same calendar day one year later, speakers and partners re-linked, attendees never copied, no cascade, no delete).
+- **Retrieval** (ADR-006): `agent/rag/` (sheets, embedder, `VectorStore` + Chroma/memory stores, idempotent ingestion, retriever service). New containers `vectorstore` (Chroma 1.5.9, internal only) and `retriever` (internal + egress, Gemini key). The gateway's `search_procedures` now calls the retriever; the stub is gone.
+- **Config:** `retrieval` block in `config/configurations.yaml` (`gemini-embedding-2`, 768 dims, `procedures_v1`, k = 4). It is part of the config hash, so the C0 hash changed.
+- **Tests:** `tests/test_rag.py` (18 tests: sheet structure, word counts, idempotent ingestion, re-embedding only changed chunks, stale removal, retrieval of PROC-03/10/18 with an offline embedder, retriever service, Gemini prefixes, retry on 429 and `retryDelay`, pacing, Chroma REST calls). The gateway tests now run `search_procedures` against the real sheets (offline embedder).
+- **Live:** ingestion in Docker embedded 90 chunks (3 calls); a second run embedded 0 (0 calls). Probe through the gateway: 3/3 queries found the expected sheet first ("How do I duplicate a club?" → PROC-03).
+- **Problem met:** the second ingestion run of the first version hit the free-tier limit (429, "100 embed requests per minute", counted per text). Fixed by pacing, honouring `retryDelay`, and embedding only changed chunks.
+- **Gemini so far tonight:** 1 model-list call; about 16 embedding requests (about 200 texts, including the failed run); 0 generation calls.
+
+**How to verify:** manual guide L16.
+
+**Unsure.** Retrieval quality was checked on 3 live queries only. The offline tests use a word-hashing embedder, which checks the plumbing, not the semantic quality.
+
+**Next:** S2-04 (n8n naive agent workflow, C0).

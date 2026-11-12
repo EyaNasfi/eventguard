@@ -3,6 +3,7 @@
 #
 # Each service gets an explicit list of variables (interpolated from .env), not the whole file:
 # EventSim never sees the Gemini key; the gateway never sees the Gemini key or the test token.
+# The Gemini key goes only to n8n (chat model) and the retriever (embeddings).
 name: eventguard
 
 services:
@@ -23,6 +24,38 @@ services:
       - lab_internal
     restart: unless-stopped
 
+  # Vector store for the procedure sheets (S2-03). Internal network only, no host port.
+  vectorstore:
+    image: chromadb/chroma:1.5.9@sha256:1e0b73a187a28757c572acba508c46f48c9e8b0acaf5c20e6d95cdedce1acdf6
+    volumes:
+      - chroma_data:/data
+    networks:
+      - lab_internal
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /api/v2/heartbeat HTTP/1.0\r\n\r\n' >&3 && grep -q ' 200 ' <&3"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # Embeds queries and searches the vector store for the gateway's search_procedures (S2-03).
+  # It holds the Gemini key and has internet access (egress), so the gateway needs neither.
+  # Ingest the sheets with: docker compose exec retriever python -m agent.rag.ingest
+  retriever:
+    build:
+      context: .
+      dockerfile: agent/rag/Dockerfile
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?set in .env}
+      CHROMA_URL: http://vectorstore:8000
+    depends_on:
+      vectorstore:
+        condition: service_healthy
+    networks:
+      - lab_internal
+      - egress
+    restart: unless-stopped
+
   # The only path from the agent to EventSim (FR-GW-01). MCP over Streamable HTTP at
   # http://gateway:8100/mcp, internal network only (SR-14): no port is published, not even in dev.
   gateway:
@@ -39,8 +72,11 @@ services:
       GATEWAY_TOKEN_ADMIN: ${GATEWAY_TOKEN_ADMIN:?set in .env}
       EVENTGUARD_CONFIG: ${EVENTGUARD_CONFIG:?set in .env}
       GEMINI_MODEL: ${GEMINI_MODEL:?set in .env}  # part of the config hash, not a secret
+      RETRIEVER_URL: http://retriever:8200
     depends_on:
       eventsim:
+        condition: service_healthy
+      retriever:
         condition: service_healthy
     networks:
       - lab_internal
@@ -94,4 +130,5 @@ networks:
 
 volumes:
   eventsim_data:
+  chroma_data:
   n8n_data:
