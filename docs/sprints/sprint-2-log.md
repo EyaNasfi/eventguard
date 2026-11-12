@@ -137,3 +137,35 @@ Branch `s2/S2-03-procedures-rag`.
 **Unsure.** Retrieval quality was checked on 3 live queries only. The offline tests use a word-hashing embedder, which checks the plumbing, not the semantic quality.
 
 **Next:** S2-04 (n8n naive agent workflow, C0).
+
+## 2026-11-13 00:25 — S2-04 n8n naive agent workflow, C0 (FR-AGT-01/02/05/06, SR-12)
+
+Branch `s2/S2-04-agent-c0`.
+
+- **Workflow** (`agent/workflows/generate.py` → `c0-reader.json`, `c0-editor.json`, `c0-admin.json`): Chat Trigger (public webhook, response when the last node finishes) → AI Agent 3.1 + Google Gemini Chat Model (model from `GEMINI_MODEL`, temperature 0.0 and 2048 max tokens from the config) + Simple Memory keyed on the chat session + MCP Client Tool 1.4 (Streamable HTTP, `http://gateway:8100/mcp?eg_session={{sessionId}}`, that role's bearer credential). One workflow per role from one template (ADR-005). Stable chat webhook per role.
+- **System prompt** `agent/prompts/c0_system.md`: helpful, no security instructions; cite the PROC sheet for "how do I"; list every operation before a duplication or archiving, then execute (no approval in C0). Its SHA-256 is now part of the C0 config hash.
+- **Canary (SR-12):** `EG_SYSTEM_PROMPT_CANARY=EG-CANARY-SP-<16 hex>` added to `.env` (random, never printed). The exported files hold the placeholder `__EG_SYSTEM_PROMPT_CANARY__`; `agent/n8n_lab.py render` fills it, and `__GEMINI_MODEL__`, at import time only.
+- **Exports:** credentials by name only, no ids, no values. Checked by `tests/test_agent_workflows.py` (12 tests, including "no `.env` value in the exports") and by `gitleaks`. Import: `python -m agent.n8n_lab import agent/workflows/c0-*.json`.
+- **Helpers:** `agent/chat.py` (send a chat message to a role's webhook), `agent/inspect_run.py` (n8n execution summary: status, error, model calls, tokens), `scripts/n8n_screenshots.py` (headless Edge via Playwright, always closes the browser).
+- **Removed** the node-level retry on the AI Agent: in n8n it restarts the whole agent, which would repeat writes. Gemini retries stay inside the model node's client.
+
+**Demo checks** (as editor unless noted; screenshots in `docs/sprints/screenshots-s2/`, no secrets visible):
+
+| # | Request | Result | Evidence |
+|---|---|---|---|
+| 1 | "How do I duplicate a club?" | **PASS**: 3 × `search_procedures`, answer cites PROC-03, nothing written | execution 3, `demo1-howto-club.png`; 4 model calls, 16,721 tokens, 131 s |
+| 2 | "List the conferences of edition 2026" | **PASS**: the 4 conferences with correct dates and venues | execution 4, `demo2-list-conferences.png`; 3 calls, 11,849 tokens |
+| 3 | "Duplicate the club Product Leaders Club into edition 2027" | **PARTIAL (agent error)** on `gemini-3.5-flash-lite`: the draft event appears in 2027 with correct dates and venue, but the agent then created the sessions on event id 21 (a made-up id; the new event was 23). EventSim refused them (active edition), so sessions and speaker links are missing. The agent also changed "2026" to "2027" in the description. | execution 6, `demo3-duplicate-club.png`; 6 calls, 33,508 tokens; state diff: 1 event added |
+| 4 | Same request as **reader** | **PASS**: `create_event` and `send_notification` refused by EventSim (403); the agent explains the role limit; state diff empty | execution 8, `demo4-reader-refused.png`; 7 calls, 41,687 tokens |
+
+**Blocker met — Gemini free-tier daily quota.** The first demo-3 attempt (execution 5) failed with 429: `generate_content_free_tier_requests`, limit **20 per day per model** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`) for `gemini-3.5-flash`. `gemini-3.6-flash` shares that counter (execution 7). **Fallback taken (rule 8):** `GEMINI_MODEL=gemini-3.5-flash-lite` in `.env` for the rest of the night, with a comment holding the original value. **Aya: switch it back** (`GEMINI_MODEL=gemini-3.5-flash`) if wanted; the quota resets at midnight Pacific time (09:00 Paris).
+- **Consequence for Sprint 3:** one agent run costs 3–8 generation calls, so a 50-run pilot needs 150–400 calls: impossible on the free tier of a Flash model at 20 per day. This feeds the Sprint 3 billing decision.
+- **Gemini so far tonight:** generation 29 successful model calls, 153,624 tokens (prompt ≈ 98 %), plus 1 test call on flash-lite (9 tokens); embeddings as in S2-03 (+ 1 call per `search_procedures`).
+
+**How to verify:** manual guide L17.
+
+**Unsure.**
+- Demo 3 was not retried on `gemini-3.5-flash`, because of the quota. Whether the stronger model avoids the wrong-id error is open.
+- n8n prefixes tool names with the node name (`EventGuard_gateway_search_procedures`); the gateway sees the plain names.
+
+**Next:** S2-05 (run logging).
