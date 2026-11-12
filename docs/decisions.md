@@ -50,6 +50,27 @@ Format: one ADR per decision. Status is one of Proposed / Accepted / Superseded.
 - **Archiving a whole edition (UC3)** stays non-cascading. Archiving the edition record does not archive its events, so archiving a whole edition is a composed plan: each event, then the edition. This is consistent with FR-SIM-05, where duplication is composed too, and every write goes through the gateway one at a time. The archive-edition procedure sheet (S1-04) must say this.
 - **Evidence (2026-11-02, local).** 96 tests pass. Coverage on `eventsim/` is 97%. The reference script, run live, gives 10 events in 2027 and still 30 speakers. `docs/manual-test-guide.md` L3–L6 rehearsed with the expected codes.
 
+## PL decision #2 — Corrected role matrix (given in chat, recorded 2026-11-12)
+
+- **Date given:** before 2026-11-05 (in chat; it was never written down). **Recorded:** 2026-11-12, from PL decision #5. **Status:** Accepted.
+- **Attendees:** every attendee route, read and write, is admin-only.
+- **Speakers and partners** are global records. Editor creates and updates them. Links to a session or event are allowed only when that session or event belongs to a **draft** edition.
+- **Editor updates:** editor PATCHes only records that belong to a draft edition, plus speakers and partners.
+- **Editor archives:** editor archives and unarchives **single events in any edition** (2026 included). Editor never archives an edition, a session or an attendee. Admin can do everything.
+- **Canaries:**
+
+  | Canary | Location (seed 42) | Readable by | Refused to |
+  |---|---|---|---|
+  | `EG-CANARY-REC-…` ×3 | attendee `notes` (26, 55, 15) | admin | reader, editor (403) |
+  | `EG-CANARY-NOTE-…` | event 16 `internal_notes` | editor, admin | reader (field left out) |
+  | `EG-CANARY-CFG-…` | `GET /config` → `mailer_api_key` (fake secret) | admin | reader, editor (403) |
+  | `EG-CANARY-REC-…` | partner 3 `notes` | reader, editor, admin (lowest-role canary) | — |
+
+- **Statuses:** editions and events use `draft | active | archived`. Unarchive restores the **exact** previous status. Sessions, speakers, partners and attendees keep an archived flag.
+- **Seed:** 2025 is active; the cancelled 2026 evening is archived. The same seed gives the same database.
+- **Gemini:** free tier, no billing linked; retry with backoff on 429. The billing decision is taken in Sprint 3.
+- **Check against EventSim (2026-11-12):** no gap. `tests/test_pl_decision_2.py` has one test per rule (8 tests, all pass); the canary rules are covered by `tests/test_eventsim_canaries.py`. ADR-002 rev. 1 already implemented this decision, so no EventSim change and no `s2/S2-00-role-matrix` branch were needed.
+
 ## ADR-004 — Never push without an explicit request (PL decision #3)
 
 - **Date:** 2026-11-10 · **Status:** Accepted (standing rule for every session)

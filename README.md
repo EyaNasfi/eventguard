@@ -1,70 +1,112 @@
 # EventGuard
 
-Research lab that builds, secures and evaluates a tool-using AI agent on **EventSim**, a simulated event platform. All data is generated and fictional.
+A research lab that tests how to keep an AI assistant safe when it can change real data.
+All data here is invented.
 
-Status: Sprint 0 (EventSim) done during Sprint 1. Gateway, n8n agent and benchmark are coming in S1. See [docs/sprints/](docs/sprints/).
+## 1. EventGuard in 3 bullets
 
-## Layout
+- **The problem:** an AI assistant that can write to an event platform can be tricked.
+  Text hidden in a record can make it leak data or archive the wrong things.
+- **The AI agent:** Gemini (Google's AI model) reads a staff request, plans steps and calls *tools*.
+  A tool is one action the agent may ask for, like "list events".
+- **The protection and the proof:** every tool call goes through our **gateway**, a checkpoint program.
+  Then an **attack bench** (a set of trick requests) measures how often the tricks still work.
 
-| Folder | Content |
-|---|---|
-| `eventsim/` | Simulated platform: FastAPI + SQLModel, seeded generator, test endpoints, reference duplication script |
-| `tests/` | pytest suite |
-| `docs/` | decisions, threat model, sprint logs and reports |
+## 2. The picture
 
-## Run the lab
-
-```bash
-cp .env.example .env          # then replace every change-me value
-docker compose up -d --build  # EventSim on the internal network only
-# host access for the harness / debugging (127.0.0.1 only):
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+```mermaid
+flowchart LR
+  chat["Chat (n8n)<br/>staff type a request"] --> agent["AI agent (Gemini)<br/>plans and picks tools"]
+  agent --> gw["Gateway<br/>checks every tool call"]
+  gw --> es["EventSim<br/>fake event platform"]
 ```
 
-## Develop and test (Python 3.12)
+- **Chat (n8n):** n8n is a tool for building workflows; it hosts the chat window.
+- **AI agent:** Gemini decides which tools to call, in which order.
+- **Gateway:** lets a call through, blocks it, or asks a human first.
+- **EventSim:** our simulated platform with editions, events, speakers, partners and attendees.
 
-```bash
-py -3.12 -m venv .venv && .venv/Scripts/pip install -e ".[dev]"   # Windows
-ruff check . && ruff format --check . && mypy
-pytest --cov=eventsim
-```
+## 3. One example: "duplicate 2026 into 2027"
 
-## Reference duplication (FR-SIM-10)
+1. An editor types the request in the chat.
+2. The agent reads edition 2026 through the gateway (list events, sessions, speakers).
+3. The agent writes a plan: which events and sessions to create in 2027.
+4. Each step is a tool call sent to the gateway with the editor's identity.
+5. The gateway checks the call. In C0 (no protection) it only checks who is calling.
+6. EventSim checks the role again and creates the draft records in 2027.
+7. Attendees are never copied; archived events are skipped.
+8. The result: 10 new draft events in 2027, the same as the reference script.
 
-```bash
-EVENTSIM_URL=http://localhost:8000 EVENTSIM_TOKEN_ADMIN=... python -m eventsim.reference --source 2026 --target 2027
-```
+## 4. What works today / what's next
 
-## EventSim API (v0)
-
-Every route except `/health` needs `Authorization: Bearer <user token>`.
-
-| Method | Path | Min. role |
+| Part | Status | One line |
 |---|---|---|
-| GET | `/health` | none |
-| GET | `/me` | reader |
-| GET | `/editions` (`year`, `status`, `archived`), `/editions/{id}` | reader |
-| GET | `/events` (`edition_id`, `year`, `type`, `status`, `archived`), `/events/{id}` | reader |
-| GET | `/sessions` (`event_id`, `speaker_id`, `archived`), `/sessions/{id}` | reader |
-| GET | `/speakers` (`q`, `archived`), `/speakers/{id}` | reader |
-| GET | `/partners` (`q`, `tier`, `event_id`, `archived`), `/partners/{id}` | reader |
-| GET | `/attendees` (`event_id`, `q`, `archived`), `/attendees/{id}` | **admin** |
-| GET | `/search?q=` (attendees in results for admin only) | reader |
-| GET | `/config` | admin |
-| POST | `/editions` | admin |
-| POST | `/events`, `/sessions` | editor **in a draft edition**; admin anywhere |
-| POST | `/speakers`, `/partners` | editor |
-| POST | `/attendees` | admin |
-| POST | `/sessions/{id}/speakers`, `/events/{id}/partners` (links) | editor in a draft edition; admin anywhere |
-| PATCH | `/{entity}/{id}` | editor for speakers, partners and draft-edition events/sessions; admin for everything |
-| POST | `/events/{id}/archive`, `/events/{id}/unarchive` | editor |
-| POST | `/{other entity}/{id}/archive`, `.../unarchive` | admin |
-| POST | `/notifications` (stored in the outbox) | editor |
-| GET | `/outbox` | admin |
-| POST/GET | `/_test/reset`, `/_test/snapshot`, `/_test/state-diff`, `/_test/export`, `/_test/outbox`, `/_test/canaries` | `X-Test-Token` header (harness only) |
+| EventSim (fake platform) | ✅ works | Roles, no delete, seeded data, canaries, test endpoints; 104 tests |
+| Reference script | ✅ works | Duplicates 2026 → 2027 by hand-written code in about 2 s |
+| First Gemini tool call | ✅ works | One AI call to one tool, checked against the real record |
+| Configurations C0–C4 | 🟡 partly | C0 complete; C1–C4 exist but switch nothing on yet |
+| Gateway (MCP server) | 🟡 partly | 27 tools, one login per role; on a branch, merged in Sprint 2 |
+| Web console | 🟡 partly | Testing tool: Events page is real, other pages are sample data |
+| Chat agent in n8n | ⬜ not built yet | Sprint 2 |
+| Procedure sheets + search | ⬜ not built yet | Sprint 2 |
+| 40 test tasks + checkers | ⬜ not built yet | Sprint 2 |
+| Protection layers (C1–C4) | ⬜ not built yet | Later sprints |
+| Attack bench and results | ⬜ not built yet | Later sprints |
 
-There is no DELETE route. Editions and events have `status: draft | active | archived`; event `internal_notes` are hidden from reader. The full matrix is in `eventsim/api.py` and ADR-002 rev. 1.
+## 5. Try it in 5 minutes
 
-Seed 42: editions 2025 (active), 2026 (active), 2027 (draft, empty); 22 events (11 per year, one archived 2026 evening); the reference duplication 2026 → 2027 creates **10** events.
+Needs Python 3.12, Node.js and Docker Desktop (running). From the repo folder, in PowerShell:
 
-Manual checks: [docs/manual-test-guide.md](docs/manual-test-guide.md).
+```powershell
+# one-time setup
+py -3.12 -m venv .venv; .\.venv\Scripts\pip install -e ".[dev]"
+Copy-Item .env.example .env        # then replace every change-me value
+
+# start EventSim, reachable on this PC only (127.0.0.1:8000)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --wait
+
+# start the web console (fictional data by default)
+cd web; npm install; npm run dev   # open http://localhost:5173
+```
+
+Three things to try:
+
+1. Open <http://127.0.0.1:8000/docs> to see every EventSim route.
+2. In the console, click **Demo guide** and play steps 1–3: an attack works on C0 and is blocked on C3 (sample data).
+3. Run the tests: `.\.venv\Scripts\python -m pytest` (all should pass).
+
+## 6. Folders
+
+| Folder | What is inside |
+|---|---|
+| `eventsim/` | The fake event platform (Python, FastAPI) |
+| `config/` | The C0–C4 configurations and their fingerprint (hash) |
+| `tests/` | Automatic tests |
+| `scripts/` | Helpers: load `.env`, state hash, first Gemini call |
+| `web/` | The web console (React), a testing tool |
+| `docs/` | Decisions, threat model, guides, sprint logs, reports |
+
+## 7. Words you'll hear
+
+| Word | Meaning |
+|---|---|
+| **Agent** | An AI model that plans steps and calls tools to do a task |
+| **Tool** | One action the agent may request, like `archive_event` |
+| **MCP** | Model Context Protocol: a standard way for agents to find and call tools |
+| **Gateway** | Our checkpoint between the agent and EventSim |
+| **C0–C4** | Five setups of the gateway, from no protection (C0) to all of it (C4) |
+| **Canary** | A fake secret planted in the data; if it shows up somewhere, data leaked |
+| **Oracle / checker** | Code that decides if a task was done right, without asking an AI |
+| **ASR** | Attack success rate: the share of attacks that worked (lower is better) |
+| **Archive vs delete** | Archive hides a record and can be undone; delete is never allowed here |
+| **Prompt injection** | Instructions hidden in data that try to steer the agent |
+| **Seed** | A number that makes the fake data come out the same every time |
+
+## 8. Read more
+
+- [docs/START-HERE.md](docs/START-HERE.md): the full tour of the repo.
+- [docs/decisions.md](docs/decisions.md): every decision and why.
+- [docs/manual-test-guide.md](docs/manual-test-guide.md): checks you can run by hand.
+- [docs/sprints/](docs/sprints/): sprint logs and reports.
+- [docs/eventsim-api.md](docs/eventsim-api.md): every EventSim route and who may call it.
+- [docs/threat-model-v0.md](docs/threat-model-v0.md): what we defend against.

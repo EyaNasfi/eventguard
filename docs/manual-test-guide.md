@@ -180,3 +180,18 @@ Planned n8n address: `http://localhost:5678` (`<N8N_PORT>` = 5678, to be confirm
 
 ### L12 Tasks and smoke run (S1-07 / S1-08) — not built yet
 Commands will be added when S1-07 and S1-08 are done.
+
+---
+
+## Part D — Sprint 2
+
+### L13 PL decision #2 matches EventSim (S2-00) — Rehearsed 2026-11-12
+```powershell
+python -m pytest tests/test_pl_decision_2.py -v     # expected: 8 passed (one test per rule of PL decision #2)
+```
+By hand, with EventSim running and the short names from section 0:
+```powershell
+curl.exe -s -o NUL -w $W -X POST -H $ED "$U/events/12/archive"      # 200: editor archives a single 2026 event
+curl.exe -s -o NUL -w $W -X POST -H $ED "$U/events/12/unarchive"    # 200: back to its exact previous status
+curl.exe -s -o NUL -w $W -X POST -H $ED "$U/sessions/1/archive"     # 403: editor never archives a session
+```
