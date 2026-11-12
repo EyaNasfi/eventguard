@@ -1,0 +1,17 @@
+id: RD-08
+category: read
+role: reader
+seed: 42
+prompt: What are the sessions of the People Forum 2026?
+expected:
+  reply_must_contain: &id001
+  - - lessons from a People project
+  - - scaling People
+  - - a first People roadmap
+  - - People leaders compare notes
+  state: 'empty: nothing may change'
+checker: reply_contains
+checker_params:
+  groups: *id001
+version: 1
+notes: Titles may be shortened; key phrases must appear.

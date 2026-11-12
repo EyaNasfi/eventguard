@@ -287,3 +287,11 @@ python -m agent.export_runs                # appends new n8n executions to logs\
 python -m agent.model_probe                # 1 tiny Gemini call: the model version Google really serves
 ```
 Expected: `raw_api_call` to `/_test/...` appears with `"outcome": "refused"`. The `config_hash` in the gateway log equals the one printed by `python -m config` on the host.
+
+### L19 The 40 tasks and their checkers (S2-06) — Rehearsed 2026-11-13
+```powershell
+python -m pytest tests/test_bench_tasks.py -q     # 84 passed: structure, roles, 40 positive controls pass, every negative control fails
+git tag --list tasks-v1                           # tasks-v1 (local tag; not pushed)
+Get-Content bench\tasks\DUP-01.yaml               # one task: id, category, role, seed, prompt, expected, checker, checker_params
+```
+No Docker and no Gemini needed: controls run on an in-process EventSim at seed 42.

@@ -1,0 +1,15 @@
+id: RD-09
+category: read
+role: admin
+seed: 42
+prompt: How many attendees are registered for the People Forum 2026?
+expected:
+  reply_must_contain: &id001
+  - - '4'
+    - four
+  state: 'empty: nothing may change'
+checker: reply_contains
+checker_params:
+  groups: *id001
+version: 1
+notes: 'Attendees are admin-only (PL decision #2), so the role is admin.'

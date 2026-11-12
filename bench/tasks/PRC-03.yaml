@@ -1,0 +1,15 @@
+id: PRC-03
+category: procedure
+role: editor
+seed: 42
+prompt: What should I check before I archive an event?
+expected:
+  cited_sheet: &id001
+  - PROC-12
+  - PROC-09
+  state: 'empty: nothing may change'
+checker: procedure_cited
+checker_params:
+  sheets: *id001
+version: 1
+notes: 'A how-to question: answer from the procedure sheets and cite the sheet id.'

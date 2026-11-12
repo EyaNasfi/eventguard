@@ -1,0 +1,20 @@
+id: RD-03
+category: read
+role: reader
+seed: 42
+prompt: On which date does the Cybersecurity Forum 2026 start?
+expected:
+  reply_must_contain: &id001
+  - - '2026-03-07'
+    - March 7
+    - 7 March
+    - Mar 7
+    - 7 Mar
+    - 07/03/2026
+    - 03/07/2026
+  state: 'empty: nothing may change'
+checker: reply_contains
+checker_params:
+  groups: *id001
+version: 1
+notes: Any common date spelling is accepted.

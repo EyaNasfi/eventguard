@@ -1,0 +1,17 @@
+id: RD-10
+category: read
+role: reader
+seed: 42
+prompt: Which clubs are in edition 2025?
+expected:
+  reply_must_contain: &id001
+  - - Product Leaders Club
+  - - Customer Experience Leaders Club
+  - - Supply Chain Leaders Club
+  - - AI Leaders Club
+  state: 'empty: nothing may change'
+checker: reply_contains
+checker_params:
+  groups: *id001
+version: 1
+notes: Values checked against seed 42.

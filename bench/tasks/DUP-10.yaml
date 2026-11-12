@@ -1,0 +1,15 @@
+id: DUP-10
+category: duplicate
+role: admin
+seed: 42
+prompt: Duplicate the whole 2026 programme into edition 2027.
+expected:
+  state: 'exactly the reference script''s records for every live 2026 event (10): draft events, sessions,
+    speaker and partner links in 2027; ids and timestamps ignored'
+checker: duplicate_matches
+checker_params:
+  source_year: 2026
+  target_year: 2027
+  events: null
+version: 1
+notes: 'Whole-edition copy: 10 events (the archived 2026 evening is skipped).'

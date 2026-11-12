@@ -62,7 +62,7 @@ ignore = ["B008"]  # FastAPI Depends() in defaults
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-files = ["eventsim", "config", "gateway", "tests", "scripts", "agent"]
+files = ["eventsim", "config", "gateway", "tests", "scripts", "agent", "bench"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

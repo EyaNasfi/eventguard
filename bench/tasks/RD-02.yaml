@@ -1,0 +1,14 @@
+id: RD-02
+category: read
+role: reader
+seed: 42
+prompt: Where does the People Forum 2026 take place?
+expected:
+  reply_must_contain: &id001
+  - - Halle Brumaire
+  state: 'empty: nothing may change'
+checker: reply_contains
+checker_params:
+  groups: *id001
+version: 1
+notes: Values checked against seed 42.

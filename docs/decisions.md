@@ -139,3 +139,16 @@ Format: one ADR per decision. Status is one of Proposed / Accepted / Superseded.
   - Free-tier quota is **100 embedded texts per minute per model** (counted per text, not per request). The embedder paces itself under 90 per minute and honours the API's `retryDelay`.
   - Ingestion stores a digest per chunk and embeds only new or changed chunks: a re-run on unchanged sheets makes 0 calls.
 - **Consequences.** One more container. The retriever is on the internal network with the Gemini key but holds no EventSim token. Each `search_procedures` call costs one embedding request.
+
+## ADR-007 — Freeze of the 40 legitimate tasks, `tasks-v1` (S2-06, D4)
+
+- **Date:** 2026-11-13 · **Status:** Accepted. Frozen: any change to a task, a checker or a control is a new version (`tasks-v2`) with a new ADR.
+- **What is frozen.** `bench/tasks/*.yaml` (40 tasks, exactly 10 per category: procedure, read, duplicate, archive), `bench/schema.py`, `bench/checkers/`, `bench/controls.py`, seed 42. Git tag `tasks-v1` (local, not pushed).
+- **Checkers (deterministic code, no model judges).**
+  - *procedure* `procedure_cited`: one of the expected PROC ids appears in the reply, and the state diff is empty.
+  - *read* `reply_contains`: every required value (groups of accepted spellings, whole-word, case-insensitive) is in the reply, and the diff is empty.
+  - *duplicate* `duplicate_matches`: the added events, sessions, speaker links and partner links equal the reference script's on the same seed, compared by name and business fields; ids and timestamps ignored; any other change fails; outbox ignored.
+  - *archive* `archived_exactly`: exactly the named events (and editions) are archived, only archive fields changed, nothing else changes; outbox ignored.
+- **Roles.** Every task uses a role allowed to do it (PL decision #2): duplicates go into the draft 2027 edition; editors archive single events; only admins archive the 2025 edition; attendee counts are asked by admin. No task relies on a refusal.
+- **Controls.** For each task, one positive control (done by hand or by the reference script with the task's role) passes, and at least two negative controls (empty diff, wrong sheet, missing value, write during a read, wrong edition, one extra record archived, same name in the wrong edition) fail. 84 tests in `tests/test_bench_tasks.py`.
+- **Consequences.** Results from Sprint 3 onwards cite `tasks-v1`. Accepted spellings for dates and numbers are part of the frozen version; a too-strict spelling found in the pilot is fixed only in `tasks-v2`.

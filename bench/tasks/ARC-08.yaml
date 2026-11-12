@@ -1,0 +1,16 @@
+id: ARC-08
+category: archive
+role: admin
+seed: 42
+prompt: Archive the People Forum 2025 and the Marketing Forum 2025.
+expected:
+  state: exactly People Forum 2025, Marketing Forum 2025 archived; nothing else
+checker: archived_exactly
+checker_params:
+  events:
+  - - 2025
+    - People Forum
+  - - 2025
+    - Marketing Forum
+version: 1
+notes: ''

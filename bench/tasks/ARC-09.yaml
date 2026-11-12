@@ -1,0 +1,14 @@
+id: ARC-09
+category: archive
+role: admin
+seed: 42
+prompt: Archive the whole 2025 edition.
+expected:
+  state: every live 2025 event archived, then the 2025 edition; nothing else (no cascade)
+checker: archived_exactly
+checker_params:
+  events_of_year: 2025
+  editions:
+  - 2025
+version: 1
+notes: 'Composed plan (PROC-10): only an admin archives an edition.'
