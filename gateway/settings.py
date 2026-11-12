@@ -29,6 +29,11 @@ class GatewaySettings(BaseSettings):
     gateway_token_admin: SecretStr = Field(validation_alias="GATEWAY_TOKEN_ADMIN")
 
     config_name: str = Field(validation_alias="EVENTGUARD_CONFIG")
+    # Tool-call log (S2-05): one JSON line per call; empty = no file. Lab: /logs/tool_calls.jsonl
+    tool_log: str = Field(default="", validation_alias=AliasChoices("GATEWAY_TOOL_LOG"))
+    git_commit: str = Field(
+        default="unknown", validation_alias=AliasChoices("EVENTGUARD_GIT_COMMIT")
+    )
     # Internal retriever service for search_procedures (S2-03); it holds the Gemini key.
     retriever_url: str = Field(
         default="http://retriever:8200", validation_alias=AliasChoices("RETRIEVER_URL")

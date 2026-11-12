@@ -125,7 +125,7 @@ def workflow(role: str) -> dict[str, Any]:
 def main() -> None:
     for role in ROLES:
         path = HERE / f"c0-{role}.json"
-        path.write_text(json.dumps(workflow(role), indent=2) + "\n", encoding="utf-8")
+        path.write_text(json.dumps(workflow(role), indent=2) + "\n", encoding="utf-8", newline="\n")
         print(f"{path.relative_to(ROOT)}  chat webhook: {chat_url(role)}")
 
 

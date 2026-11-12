@@ -73,6 +73,10 @@ services:
       EVENTGUARD_CONFIG: ${EVENTGUARD_CONFIG:?set in .env}
       GEMINI_MODEL: ${GEMINI_MODEL:?set in .env}  # part of the config hash, not a secret
       RETRIEVER_URL: http://retriever:8200
+      GATEWAY_TOOL_LOG: /logs/tool_calls.jsonl  # S2-05; host folder ./logs (gitignored)
+      EVENTGUARD_GIT_COMMIT: ${EVENTGUARD_GIT_COMMIT:-unknown}  # set by scripts/lab-up.ps1
+    volumes:
+      - ./logs:/logs
     depends_on:
       eventsim:
         condition: service_healthy
