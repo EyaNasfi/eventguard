@@ -303,3 +303,13 @@ python -m bench.smoke --tasks PRC-01,RD-01,DUP-01,ARC-01,RD-02     # about 6 min
 Get-Content results\smoke.jsonl -Tail 5                            # one line per task: passed, reasons, failure_class, tokens...
 ```
 Each line carries task id, pass/fail, reasons, failure class, config hash, model and served version, temperature, seed, tasks version, git commit, latency, model calls and tokens, and the gateway tools used (matched by session id). Free tier: 15 generation requests per minute on `gemini-3.5-flash-lite`, hence the pause.
+
+### L21 Sprint 2 verification campaign (S2-09) — Rehearsed 2026-11-13
+The full campaign (A–H, 43 checks) with its commands is in `docs/sprints/sprint-2-verification.md`. The quickest subset:
+```powershell
+python -m pytest --cov=eventsim --cov=gateway        # 336 passed; eventsim ≥ 95 %, gateway ≥ 80 %
+gitleaks git --redact .                               # no leaks found
+Get-Content scripts\gateway_identity_probe.py -Raw | docker compose exec -T gateway python -   # bearer -> right user; /_test refused
+curl.exe -s -m 5 http://127.0.0.1:8100/health        # fails: the gateway has no host port
+```
+For the clean rebuild (A), clone into a new folder and set `$env:COMPOSE_PROJECT_NAME = "egverify"` first, so `docker compose down -v` cannot touch the main lab's volumes.

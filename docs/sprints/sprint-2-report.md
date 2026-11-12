@@ -32,7 +32,7 @@ date: 2026-11-13
 | S2-06 40 tasks + checkers | done, frozen | ADR-007; tag `tasks-v1` (local) |
 | S2-07 Agent client + smoke run | done | `bench/agent_client.py`, `bench/smoke.py` |
 | S2-08 Docs | done | this report, `docs/architecture.md`, START-HERE §2/§4/§8 |
-| S2-09 Verification campaign | done | `docs/sprints/sprint-2-verification.md` |
+| S2-09 Verification campaign | done: **43 PASS, 0 FAIL** | `docs/sprints/sprint-2-verification.md` |
 
 ## 3. Demo checks (S2-04)
 
@@ -61,7 +61,7 @@ C0, `gemini-3.5-flash-lite` (served as itself), temperature 0.0, seed 42, `tasks
 
 - **Mean 31,233 tokens** per completed run (median 15,451; 5 runs). Procedure/read 7–15k, archive 18k, duplicate 105k.
 - About 97 % are prompt tokens: the 27 tool schemas, the system prompt and the history are resent on every model call.
-- **Gemini use during the night:** about 76 generation calls (≈ 356,000 tokens), about 20 embedding requests (≈ 200 texts), 2 model-list calls.
+- **Gemini use during the night:** about 81 generation calls (≈ 399,000 tokens: demos 153,624; smoke 202,046; clean-clone check about 43,000; probes), about 42 embedding requests (about 500 texts, mostly ingestion), 2 model-list calls.
 
 ## 6. Identity decision (ADR-005)
 
