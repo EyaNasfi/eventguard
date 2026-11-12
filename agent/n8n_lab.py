@@ -12,6 +12,7 @@ only names and ids are reported.
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -173,6 +174,11 @@ def setup_owner_and_key(env: dict[str, str], transport: httpx.BaseTransport | No
     key, stored in .env as N8N_API_KEY. Safe to re-run: an existing owner or key is kept."""
     base = env.get("N8N_URL", "http://127.0.0.1:5678")
     http = httpx.Client(base_url=base, timeout=30, transport=transport)
+    # n8n reports healthy a few seconds before its REST routes exist (seen 2026-11-13: 404).
+    for _ in range(30):
+        if http.get("/rest/settings").status_code != 404:
+            break
+        time.sleep(2)
     owner = {
         "email": env["N8N_OWNER_EMAIL"],
         "firstName": "Lab",

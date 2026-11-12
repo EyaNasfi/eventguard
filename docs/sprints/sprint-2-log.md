@@ -44,7 +44,7 @@ Resume point: the last entry's **Next** line.
 
 | Time (+01:00) | Commit | Who | How |
 |---|---|---|---|
-| 19:17:00 | `624f841` (2 commits) | **The coding agent**, at Aya's explicit request in chat | The 2 local commits were rewritten so the author and committer are Aya NASFI <eya.nasfi@esprit.tn> with no co-author lines (contents unchanged). The remote URL was set to `https://EyaNasfi@github.com/EyaNasfi/eventguard.git`, then `git push -u origin s1/web-frontend-p1-3` via Git Credential Manager. |
+| 19:17:00 | `624f841` (2 commits) | **The coding agent**, at Aya's explicit request in chat | The 2 local commits were rewritten so the author and committer are Aya NASFI (the email of her earlier commits) with no co-author lines (contents unchanged). The remote URL was set to `https://EyaNasfi@github.com/EyaNasfi/eventguard.git`, then `git push -u origin s1/web-frontend-p1-3` via Git Credential Manager. |
 | 21:15:44 | `771eebe` "Web UI: console restyle after the reference page" | **Aya** (confirmed in PL decision #5) | Committed at 21:15:39, pushed 5 s later. |
 
 No other push: `main`, tags and PRs untouched on the remote. **Accepted by PL decision #5.**
@@ -55,13 +55,13 @@ No other push: `main`, tags and PRs untouched on the remote. **Accepted by PL de
 - **Docker** already running (29.6.1); EventSim container healthy.
 - Stopped the Vite dev server that the agent itself had started earlier in this session (port 5173). No other process was touched.
 - **Merged `s1/web-frontend-p1-3` into local `main`** (`--no-ff`, merge `e4e7627`). Reason: START-HERE, CLAUDE.md, ADR-004 and the decisions that Sprint 2 updates live on that branch. Checks before the merge: pytest 96 passed; ruff and ruff format clean; mypy clean; web typecheck, lint and build clean; `gitleaks git` no leaks. `gitleaks dir` found 4 hits, all in gitignored, untracked files (`web/.env.local` tokens and two `.impeccable/questions` caches): not in Git.
-- **Commit identity:** local `user.name = Aya NASFI`, `user.email = eya.nasfi@esprit.tn` (as asked on 2026-11-12); commits carry no co-author lines.
+- **Commit identity:** local `user.name = Aya NASFI`, `user.email` = the address on Aya's earlier commits (as asked on 2026-11-12); commits carry no co-author lines.
 
 **How to verify.**
 ```powershell
 gitleaks version                                  # 8.30.1
 git log --oneline -1 main                         # e4e7627 Merge s1/web-frontend-p1-3 into main ...
-git config --local user.email                     # eya.nasfi@esprit.tn
+git config --local user.email                     # the address on Aya's earlier commits
 ```
 
 ## 2026-11-12 23:10 — Step 0: facts for monthly report 2 + PL decision #2
@@ -246,3 +246,28 @@ Branch `s2/S2-08-docs`.
 - ADRs written during the night: ADR-005 (identity), ADR-006 (retrieval), ADR-007 (task freeze), plus PL decision #2.
 
 **Next:** S2-09 (verification campaign), then stop.
+
+## 2026-11-13 02:45 — S2-09 Verification campaign, then stop
+
+Branch `s2/S2-09-verification`. Every check was run (not reasoned): **43 PASS, 0 FAIL**; table with commands, expected, actual and evidence in `docs/sprints/sprint-2-verification.md`.
+
+- **A** fresh clone, project `egverify` (main lab stopped, its volumes kept): `down -v`, `up --build` → 5 healthy, only n8n published; README followed word for word, including the three things to try (chat cites PROC-03; 336 tests; smoke 3/3). Clone project removed with `down -v` afterwards (its own volumes only); the clone's `.env` (it held a copy of the Gemini key) deleted.
+- **B** 336 tests; eventsim 97.5 %, gateway 94.1 %; ruff, mypy clean; gitleaks clean on history and tracked tree.
+- **C** same seed → same hash `f71c2a72…`; DELETE 405 ×4; `/_test` 403 ×9 for user tokens; reference twice → identical.
+- **D** 401 without/with a wrong bearer; each bearer → its own EventSim user; `/_test` refused ×9 and logged; no host port; 20 calls → 20 log lines with the config hash; C0–C4 → 5 hashes; allow-list = registry.
+- **E–H** demo evidence, exports clean, 40 tasks + 84 control tests + tag, smoke classified, `.env` untracked, `.env.example` complete, fictional data only.
+- **Fixed during the campaign:** Aya's real commit e-mail removed from this log; `n8n_lab setup` now waits for n8n's REST routes.
+- **New:** `scripts/gateway_identity_probe.py`; manual guide L21.
+
+### Summary for Aya (end of the overnight run, 2026-11-13)
+
+1. **Done:** Step 0 facts (`docs/reports/month-2-facts.md`), new README, PL decision #2 recorded (no gap with EventSim), S2-01 → S2-09.
+2. **Done:** the C0 agent works end to end (n8n → Gemini → gateway → EventSim); it cites PROC sheets; 18 sheets + retrieval live.
+3. **Done:** 40 tasks + deterministic checkers, frozen as `tasks-v1` (local tag); smoke run 4/5 (1 agent error); tokens ≈ 31k per run.
+4. **Not done / partial:** demo 3 (duplicate) is partial on flash-lite (agent used a made-up id); the 50-run pilot is Sprint 3.
+5. **Blocker met:** free-tier quota, 20 requests/day for `gemini-3.5-flash`; `.env` now says `gemini-3.5-flash-lite` (original value in a comment). Please decide the Sprint 3 model and billing.
+6. **Verification:** 43 PASS, 0 FAIL (`docs/sprints/sprint-2-verification.md`).
+7. **Not on GitHub:** local `main` has 10 merge commits after `origin/main` (web front end + S2-00 … S2-09), branches `s2/*`, `backup/web-frontend-before-rewrite`, and the tag `tasks-v1`. Nothing was pushed.
+8. **Processes:** the lab containers I started were stopped at the end (`docker compose stop`, data kept); no dev server or browser left. Docker Desktop is still running.
+9. **Read first:** `README.md`, then `docs/reports/month-2-facts.md`, then `docs/sprints/sprint-2-report.md` (questions in §9).
+10. **Sprint 3 was not started.**
