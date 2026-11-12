@@ -228,3 +228,14 @@ curl.exe -s -o NUL -w $W -X POST -H $ED "$U/events/12/archive"      # 200: edito
 curl.exe -s -o NUL -w $W -X POST -H $ED "$U/events/12/unarchive"    # 200: back to its exact previous status
 curl.exe -s -o NUL -w $W -X POST -H $ED "$U/sessions/1/archive"     # 403: editor never archives a session
 ```
+
+### L14 Gateway merged, allow-list aligned (S2-01) — Rehearsed 2026-11-12
+```powershell
+python -m pytest tests/test_gateway_units.py -k "allow_list_equals or names_only_registry" -v   # 5 passed
+python -m pytest tests/test_gateway.py -k "pl_decision_2 or every_test_route" -q              # 17 passed
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --wait
+docker compose ps        # eventsim 127.0.0.1:8000; gateway 8100/tcp only (no host port)
+Get-Content scripts\gateway_probe.py -Raw | docker compose exec -T gateway python -
+# expected: no bearer -> 401; 27 tools; reader create_event -> HTTP 403; /_test paths -> refused by the gateway
+```
+Afterwards reset the seed: `curl.exe -s -o NUL -w $W -X POST -H $T -H $J --data "@scripts/payloads/reset-42.json" "$U/_test/reset"`.

@@ -219,3 +219,16 @@ def test_create_app_reads_the_environment(monkeypatch: pytest.MonkeyPatch) -> No
     for key, value in env.items():
         monkeypatch.setenv(key, value)
     assert isinstance(create_app(), Starlette)
+
+
+def test_c0_allow_list_equals_the_gateway_registry() -> None:
+    """S2-01 (FR-AGT-07): the C0 allow-list and the registry must never drift apart."""
+    config = resolve("C0", env={"GEMINI_MODEL": "m"})
+    assert sorted(config.tools) == sorted(full_registry().names())
+    assert len(config.tools) == len(set(config.tools))
+
+
+@pytest.mark.parametrize("name", ["C1", "C2", "C3", "C4"])
+def test_every_configuration_names_only_registry_tools(name: str) -> None:
+    config = resolve(name, env={"GEMINI_MODEL": "m"})
+    assert set(config.tools) <= set(full_registry().names())

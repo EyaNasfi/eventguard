@@ -432,3 +432,51 @@ async def test_no_tool_can_delete(fresh: Lab) -> None:
     assert "DELETE is not allowed" in text(result)
     assert not [n for n in fresh.gateway.registry.names() if "delete" in n]
     assert data(await call(fresh, "reader", "get_event", {"event_id": 12}))["archived"] is False
+
+
+# ------------------------------------------------------------------ PL decision #2 (S2-01)
+EVENTSIM_TEST_ROUTES = ["reset", "snapshot", "state-diff", "export", "outbox", "canaries"]
+
+
+@pytest.mark.parametrize("role", ["reader", "editor", "admin"])
+async def test_raw_api_call_refuses_every_test_route_for_every_role(fresh: Lab, role: str) -> None:
+    before = fresh.eventsim.get("/_test/export", headers=HARNESS).json()
+    for route in EVENTSIM_TEST_ROUTES:
+        for method in ("GET", "POST"):
+            result = await call(
+                fresh, role, "raw_api_call", {"method": method, "path": f"/_test/{route}"}
+            )
+            assert result.is_error and text(result).startswith("refused by the gateway")
+    assert fresh.eventsim.get("/_test/export", headers=HARNESS).json() == before
+
+
+# (role, tool, arguments, allowed) — each row is one rule of PL decision #2, checked through
+# the gateway: the gateway forwards with the caller's own EventSim token, so EventSim's role
+# matrix applies unchanged.
+PL2_CASES: list[tuple[str, str, dict[str, Any], bool]] = [
+    ("editor", "archive_record", {"entity": "events", "id": 12}, True),
+    ("editor", "archive_record", {"entity": "sessions", "id": 1}, False),
+    ("editor", "archive_record", {"entity": "attendees", "id": 1}, False),
+    ("editor", "archive_record", {"entity": "editions", "id": 1}, False),
+    ("admin", "archive_record", {"entity": "sessions", "id": 1}, True),
+    ("editor", "update_record", {"entity": "events", "id": 12, "fields": {"venue": "X"}}, False),
+    ("editor", "update_record", {"entity": "speakers", "id": 1, "fields": {"company": "Y"}}, True),
+    ("editor", "update_record", {"entity": "partners", "id": 1, "fields": {"tier": "gold"}}, True),
+    ("editor", "link_partner_to_event", {"event_id": 12, "partner_id": 1}, False),
+    ("editor", "list_attendees", {}, False),
+    ("reader", "get_attendee", {"attendee_id": 1}, False),
+    ("admin", "list_attendees", {}, True),
+    ("editor", "create_speaker", {"first_name": "A", "last_name": "B", "email": "a@x.test"}, True),
+    ("reader", "create_partner", {"name": "P"}, False),
+]
+
+
+@pytest.mark.parametrize(("role", "tool", "args", "allowed"), PL2_CASES)
+async def test_pl_decision_2_through_the_gateway(
+    fresh: Lab, role: str, tool: str, args: dict[str, Any], allowed: bool
+) -> None:
+    result = await call(fresh, role, tool, args)
+    if allowed:
+        assert not result.is_error, text(result)
+    else:
+        assert result.is_error and "HTTP 403" in text(result), text(result)
