@@ -21,6 +21,10 @@ from mcp.client.streamable_http import streamable_http_client
 from pydantic import SecretStr
 from starlette.applications import Starlette
 
+from agent.rag.embed import HashingEmbedder
+from agent.rag.ingest import ingest
+from agent.rag.sheets import load_sheets
+from agent.rag.store import MemoryStore
 from config.loader import resolve
 from eventsim.main import create_app as create_eventsim
 from eventsim.models import Role
@@ -28,6 +32,20 @@ from gateway.platform import EventSimClient
 from gateway.server import Gateway, build_app
 from gateway.settings import GatewaySettings
 from tests.conftest import HARNESS, TOKENS, make_settings
+
+
+class OfflineProcedures:
+    """The real sheets in a memory store with the offline hashing embedder (no Gemini)."""
+
+    def __init__(self) -> None:
+        self.embedder = HashingEmbedder()
+        self.store = MemoryStore()
+        ingest(load_sheets(), self.store, self.embedder)
+
+    async def search(self, query: str, k: int) -> list[dict[str, Any]]:
+        hits = self.store.query(self.embedder.embed_query(query), k)
+        return [{**vars(h), "source": "procedure_sheet"} for h in hits]
+
 
 GATEWAY_TOKENS = {"reader": "g-reader", "editor": "g-editor", "admin": "g-admin"}
 C0_TOOL_COUNT = 27
@@ -86,7 +104,9 @@ async def lab(eventsim: TestClient) -> AsyncIterator[Lab]:
         {Role(k): SecretStr(v) for k, v in TOKENS.items()},
         transport=httpx.ASGITransport(app=eventsim.app),
     )
-    gateway = Gateway(resolve("C0", env={"GEMINI_MODEL": "test-model"}), platform)
+    gateway = Gateway(
+        resolve("C0", env={"GEMINI_MODEL": "test-model"}), platform, OfflineProcedures()
+    )
     app = build_app(settings, gateway)
     async with app.router.lifespan_context(app):  # starts the MCP session manager
         yield Lab(app, eventsim, gateway)
@@ -359,10 +379,20 @@ async def test_send_notification_lands_in_outbox(fresh: Lab) -> None:
     assert [m["subject"] for m in outbox] == ["Hi"]
 
 
-async def test_search_procedures_is_declared_but_not_built_yet(fresh: Lab) -> None:
-    result = await call(fresh, "reader", "search_procedures", {"query": "duplicate a club"})
-    assert result.is_error
-    assert "S1-04" in text(result)
+async def test_search_procedures_returns_cited_sheets(fresh: Lab) -> None:
+    hits = data(await call(fresh, "reader", "search_procedures", {"query": "duplicate a club"}))
+    assert len(hits) == 4
+    assert hits[0]["sheet_id"] == "PROC-03"
+    assert all(h["source"] == "procedure_sheet" for h in hits)
+    assert set(hits[0]) == {"sheet_id", "title", "section", "text", "source"}
+
+
+async def test_search_procedures_validates_arguments(fresh: Lab) -> None:
+    assert (await call(fresh, "reader", "search_procedures", {"query": " "})).is_error
+    bad_k = await call(fresh, "reader", "search_procedures", {"query": "archive", "k": 50})
+    assert bad_k.is_error
+    two = data(await call(fresh, "reader", "search_procedures", {"query": "archive", "k": 2}))
+    assert len(two) == 2
 
 
 async def test_missing_argument_is_a_tool_error_not_a_crash(fresh: Lab) -> None:

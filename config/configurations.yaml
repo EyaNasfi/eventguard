@@ -8,6 +8,15 @@ model:
   temperature: 0.0
   max_output_tokens: 2048
 
+retrieval:
+  # Procedure sheets (S2-03). Model checked in the official docs on 2026-11-12:
+  # gemini-embedding-2 is the current stable embedding model (no task_type; query and
+  # document prefixes instead). 768 dimensions are normalised by the API.
+  embedding_model: gemini-embedding-2
+  dimensions: 768
+  collection: procedures_v1
+  k_default: 4
+
 configurations:
   C0:
     name: C0

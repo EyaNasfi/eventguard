@@ -29,6 +29,10 @@ class GatewaySettings(BaseSettings):
     gateway_token_admin: SecretStr = Field(validation_alias="GATEWAY_TOKEN_ADMIN")
 
     config_name: str = Field(validation_alias="EVENTGUARD_CONFIG")
+    # Internal retriever service for search_procedures (S2-03); it holds the Gemini key.
+    retriever_url: str = Field(
+        default="http://retriever:8200", validation_alias=AliasChoices("RETRIEVER_URL")
+    )
 
     host: str = Field(default="0.0.0.0", validation_alias="GATEWAY_HOST")  # noqa: S104 (container)
     port: int = Field(default=8100, validation_alias="GATEWAY_PORT")

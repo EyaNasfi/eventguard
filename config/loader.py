@@ -57,8 +57,19 @@ class Entry(Strict):
     tools: list[str] | None = None
 
 
+class RetrievalSettings(Strict):
+    """Procedure-sheet retrieval (S2-03, FR-AGT-04). Part of the hash: changing the embedding
+    model or the chunk count changes what the agent can read."""
+
+    embedding_model: str
+    dimensions: int = Field(ge=128, le=3072)
+    collection: str
+    k_default: int = Field(ge=1, le=10)
+
+
 class ConfigFile(Strict):
     model: ModelBlock
+    retrieval: RetrievalSettings
     configurations: dict[str, Entry]
 
 
@@ -76,6 +87,7 @@ class ResolvedConfig(Strict):
     system_prompt_sha256: str | None
     layers: Layers
     model: ModelSettings
+    retrieval: RetrievalSettings
 
     @property
     def hash(self) -> str:
@@ -126,6 +138,7 @@ def resolve(
                 temperature=file.model.temperature,
                 max_output_tokens=file.model.max_output_tokens,
             ),
+            retrieval=file.retrieval,
         )
     except (KeyError, ValidationError) as exc:
         raise ConfigError(f"configuration {name} is incomplete: {exc}") from exc

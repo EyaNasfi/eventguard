@@ -23,6 +23,7 @@ from config.loader import ResolvedConfig, resolve
 from gateway.identity import StaticTokenVerifier, role_of
 from gateway.pipeline import Pipeline, ToolCall, ToolResult, build_pipeline
 from gateway.platform import EventSimClient, PlatformClient
+from gateway.procedures import ProcedureSearch, RetrieverClient
 from gateway.registry import Registry
 from gateway.settings import GatewaySettings
 from gateway.tools import ArgumentError, full_registry
@@ -39,10 +40,17 @@ def _content(result: ToolResult) -> str:
 class Gateway:
     """Holds the per-configuration state: tool selection, pipeline, platform client."""
 
-    def __init__(self, config: ResolvedConfig, platform: PlatformClient) -> None:
+    def __init__(
+        self,
+        config: ResolvedConfig,
+        platform: PlatformClient,
+        procedures: ProcedureSearch | None = None,
+    ) -> None:
         self.config = config
         self.platform = platform
-        self.registry: Registry = full_registry().select(config.tools)
+        self.registry: Registry = full_registry(procedures, config.retrieval.k_default).select(
+            config.tools
+        )
         self.pipeline: Pipeline = build_pipeline(config.layers)
 
     def list_tools(self) -> list[types.Tool]:
@@ -139,7 +147,7 @@ def create_app() -> Starlette:
     settings = GatewaySettings()
     config = resolve(settings.config_name, env=dict(os.environ))
     platform = EventSimClient(settings.eventsim_url, settings.eventsim_tokens())
-    gateway = Gateway(config, platform)
+    gateway = Gateway(config, platform, RetrieverClient(settings.retriever_url))
     log.info(
         "gateway up: config %s (%s), %d tools, tool descriptions sha256 %s",
         config.name,
