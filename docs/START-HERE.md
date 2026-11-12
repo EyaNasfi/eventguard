@@ -58,13 +58,13 @@ Trust boundaries, from `docs/threat-model-v0.md`:
 
 | Component | Folder | Status | What works today | Requirement IDs (as cited in the repo) |
 |---|---|---|---|---|
-| EventSim (simulated platform) | `eventsim/` | **built** | 6 business tables, roles reader/editor/admin, archive-only, seeded data (seed 42), canaries, outbox, `/_test/*` harness routes. 96 tests at last record. | FR-SIM-01 … FR-SIM-10 |
-| Configuration C0–C4 | `config/` | **partly built** | C0 complete. C1–C4 are stubs with every layer off. Strict loader and config hash. 11 tests. | FR-AGT-02, FR-AGT-07, FR-GW-15, NFR-02 |
-| Gateway + MCP server | `gateway/` on branch `s1/S1-02-gateway-mcp` | **partly built (not merged)** | MCP over HTTP; 27 C0 tools; bearer token per role; hard deny of `/_test/*`; empty layer pipeline (C0). 77 tests on that branch. **Not on `main`.** | FR-AGT-03, FR-GW-01, FR-GW-04, SR-01, SR-10 (hash prepared), SR-14 |
-| Agent in n8n | none | **not started** | Only `scripts/first_tool_call.py`: one Gemini call to one tool (Sprint 0 proof). | FR-AGT-* (see the spec) |
-| Procedure sheets + vector store | none | **not started** | `search_procedures` exists in the gateway but answers "not available yet". | not checked (spec not in repo) |
+| EventSim (simulated platform) | `eventsim/` | **built** | 6 business tables, roles reader/editor/admin (PL decision #2, tested rule by rule), archive-only, seeded data (seed 42), canaries, outbox, `/_test/*` harness routes. | FR-SIM-01 … FR-SIM-10 |
+| Configuration C0–C4 | `config/` | **partly built** | C0 complete (incl. retrieval settings and system-prompt hash). C1–C4 are stubs with every layer off. Allow-list = gateway registry (tested). | FR-AGT-02, FR-AGT-07, FR-GW-15, NFR-02 |
+| Gateway + MCP server | `gateway/` | **built for C0 (merged 2026-11-12)** | MCP over Streamable HTTP; 27 C0 tools; bearer token per role; hard deny of `/_test/*`; empty layer pipeline (C0); one log line per tool call (`logs/tool_calls.jsonl`). | FR-AGT-03, FR-GW-01, FR-GW-04, SR-01, SR-14 |
+| Agent in n8n | `agent/` | **built for C0** | n8n 2.47.5 in compose; one workflow per role (Chat Trigger → AI Agent + Gemini + memory + MCP Client Tool); identity = one bearer per role (ADR-005). Demo checks: 3 pass, 1 partial (agent error). | FR-AGT-01/02/05/06, SR-12 |
+| Procedure sheets + vector store | `procedures/`, `agent/rag/` | **built** | 18 sheets; Chroma 1.5.9 + retriever service; `gemini-embedding-2`; `search_procedures` live (ADR-006). | FR-AGT-04 |
 | Protection layers (C1–C4) | none | **not started** | Flags exist in config; no layer is implemented. | SR-*, FR-GW-* (see the spec) |
-| Attack bench, harness, results | none | **not started** | EventSim's `/_test/*` (reset, snapshot, state diff, canaries) is ready for it. | not checked (spec not in repo) |
+| Tasks, checkers, harness | `bench/` | **built (legitimate tasks only)** | 40 tasks frozen as `tasks-v1` (ADR-007), deterministic checkers with controls, agent client and smoke run (4/5 pass). Attack bench not built. | FR-EVAL-01, D4 |
 | Web UI | `web/` | **partly built** | Assistant, Approvals, Audit log, Events and the shell, running on bundled fictional data. Live mode reads/archives on a real EventSim (section 6). | — (not in the spec as far as checked) |
 
 The Requirements Specification v1.0 is **not in the repository**, so the IDs above are only the ones the code and docs cite.
@@ -98,9 +98,9 @@ The Requirements Specification v1.0 is **not in the repository**, so the IDs abo
 
 | Step | Exists? |
 |---|---|
-| 1. Chat in n8n | **No** (S1-03/S1-05 not started). |
-| 2. Agent planning | **No.** Only the one-tool Sprint 0 script exists. |
-| 3. Gateway over MCP with a bearer token | **Yes, on an unmerged branch** (C0: nothing is checked except role tokens and the `/_test` deny rule). |
+| 1. Chat in n8n | **Yes (C0)**, one chat webhook per role (S2-04). |
+| 2. Agent planning | **Yes (C0)**: the system prompt asks for the full list of operations first; no approval yet. |
+| 3. Gateway over MCP with a bearer token | **Yes**, merged (C0: nothing is checked except role tokens and the `/_test` deny rule); every call logged. |
 | 4. Checks, filters, spotlighting | **No** (C1–C4 layers not implemented). |
 | 5. Preview and approval | **No in the backend.** The web UI shows how it will look, on fictional data. |
 | 6. Writes on EventSim | **Yes.** `eventsim/reference.py` does the whole duplication through the public API and is the ground truth: 10 draft events in 2027. |
@@ -183,6 +183,19 @@ Every page that shows sample data carries a visible "Sample data · not measured
 | S1-09 | **moved to Sprint 2** | PL decision #1 |
 | S1-10 | **not started** | The task name is not recorded in the repo. |
 | Web UI (not an S1 task) | **Phases 1–3 built**, 4–7 paused | `docs/frontend/status.md` |
+
+**Sprint 2** (13 → 22 Nov, PL decisions #4 and #5; details in `docs/sprints/sprint-2-report.md`):
+
+| Task | Status | Evidence / note |
+|---|---|---|
+| S2-01 Gateway merged, allow-list aligned | **done** | ADR-003; `test_c0_allow_list_equals_the_gateway_registry`; Docker probe |
+| S2-02 n8n in compose + identity spike | **done** | ADR-005; `scripts/n8n_identity_spike.py` (real call n8n → gateway → EventSim) |
+| S2-03 18 procedure sheets + retrieval | **done** | ADR-006; `tests/test_rag.py`; live probe 3/3 |
+| S2-04 n8n naive agent (C0) | **done**, demo 3 partial | `agent/workflows/`; screenshots in `docs/sprints/screenshots-s2/` |
+| S2-05 Run logging | **done** | `logs/tool_calls.jsonl`, `logs/agent_runs.jsonl`; served model version via `agent/model_probe.py` |
+| S2-06 40 tasks + checkers | **done, frozen `tasks-v1`** | ADR-007; 84 control tests |
+| S2-07 Agent client + smoke run | **done** | 4/5 pass; failures classified (sprint log) |
+| S2-08, S2-09 Docs, verification | **done** | `sprint-2-report.md`, `sprint-2-verification.md` |
 
 **Tested:** the EventSim routes and role matrix, canaries, the harness, the reference script, config, and the gateway (on its branch). The web UI is checked by typecheck, lint, build and screenshots.
 
