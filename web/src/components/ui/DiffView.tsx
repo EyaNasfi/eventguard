@@ -15,7 +15,7 @@ const ENTITY: Record<ChangeGroup['entity'], [string, string]> = {
 const OP = {
   create: { sign: '+', word: 'Create', icon: Plus, cls: 'text-ok' },
   link: { sign: '+', word: 'Link', icon: Link2, cls: 'text-ok' },
-  archive: { sign: '−', word: 'Archive', icon: Archive, cls: 'text-text' },
+  archive: { sign: '−', word: 'Archive', icon: Archive, cls: 'text-strong' },
   unarchive: { sign: '+', word: 'Unarchive', icon: ArchiveRestore, cls: 'text-ok' },
   send: { sign: '→', word: 'Send', icon: Send, cls: 'text-warn' },
 } as const;
@@ -29,18 +29,17 @@ export function groupLabel(g: ChangeGroup): string {
 export function DiffView({ preview, compact = false }: { preview: ChangePreview; compact?: boolean }) {
   const [open, setOpen] = useState<string | null>(null);
   return (
-    <div className="flex flex-col">
-      {/* Tiles wrap to the card's width; the -1px margins hide the outer hairlines so wrapped rows never double up. */}
-      <div className="overflow-hidden border-y border-line">
-      <dl className="-mr-px -mb-px grid" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${compact ? '7.5rem' : '9rem'}, 1fr))` }}>
+    <div className="flex flex-col gap-3">
+      {/* One tile per change kind, plus what is left alone. Big signed number, label under it. */}
+      <dl className="m-0 grid gap-2.5" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${compact ? "5.25rem" : "8rem"}, 1fr))` }}>
         {preview.groups.map((g) => {
           const op = OP[g.op];
           return (
-            <div key={`${g.op}-${g.entity}`} className="flex min-w-0 flex-col border-r border-b border-line px-3 py-2">
-              <dt className="order-2 text-xs text-muted">
-                {op.word.toLowerCase()} · {g.count === 1 ? ENTITY[g.entity][0] : ENTITY[g.entity][1]}
+            <div key={`${g.op}-${g.entity}`} className="flex min-w-0 flex-col items-center rounded-lg border border-line bg-surface-1 px-2 py-2.5 text-center">
+              <dt className="order-2 mt-0.5 text-xs text-muted">
+                {op.word} · {g.count === 1 ? ENTITY[g.entity][0] : ENTITY[g.entity][1]}
               </dt>
-              <dd className={cn('m-0 font-mono text-lg leading-tight font-medium', op.cls)}>
+              <dd className={cn("m-0 font-mono text-lg leading-tight font-bold", op.cls)}>
                 <span aria-hidden>{op.sign}</span>
                 {g.count}
               </dd>
@@ -48,15 +47,14 @@ export function DiffView({ preview, compact = false }: { preview: ChangePreview;
           );
         })}
         {preview.excluded.length ? (
-          <div className="flex min-w-0 flex-col border-r border-b border-line px-3 py-2">
-            <dt className="order-2 text-xs text-muted">not touched</dt>
-            <dd className="m-0 font-mono text-lg leading-tight font-medium text-muted">{preview.excluded.length}</dd>
+          <div className="flex min-w-0 flex-col items-center rounded-lg border border-line bg-surface-1 px-2 py-2.5 text-center">
+            <dt className="order-2 mt-0.5 text-xs text-muted">Not touched</dt>
+            <dd className="m-0 font-mono text-lg leading-tight font-bold text-muted">{preview.excluded.length}</dd>
           </div>
         ) : null}
       </dl>
-      </div>
 
-      <ul className="m-0 list-none p-0">
+      <ul className="m-0 list-none overflow-hidden rounded-lg border border-line p-0 empty:hidden">
         {preview.groups
           .filter((g) => g.lines.length > 0)
           .map((g) => {
@@ -64,7 +62,7 @@ export function DiffView({ preview, compact = false }: { preview: ChangePreview;
             const expanded = open === key;
             const Icon = OP[g.op].icon;
             return (
-              <li key={key} className="border-b border-line">
+              <li key={key} className="border-b border-line last:border-b-0">
                 <button
                   type="button"
                   aria-expanded={expanded}
@@ -97,7 +95,7 @@ export function DiffView({ preview, compact = false }: { preview: ChangePreview;
       </ul>
 
       {preview.excluded.length ? (
-        <p className="m-0 px-3 pt-2 text-xs text-muted">
+        <p className="m-0 text-xs text-muted">
           <span className="font-semibold text-text">Not touched: </span>
           {preview.excluded.map((e, i) => (
             <span key={i}>

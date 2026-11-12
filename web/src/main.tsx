@@ -1,4 +1,4 @@
-import '@fontsource-variable/figtree/index.css';
+import '@fontsource-variable/inter/index.css';
 import '@fontsource-variable/jetbrains-mono/index.css';
 import './styles/index.css';
 

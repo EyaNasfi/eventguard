@@ -3,7 +3,7 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { api, type Approval } from '../api';
 import { PreviewCard } from '../components/agent/PreviewCard';
-import { PageHeader, SampleDataNote } from '../components/shell/AppShell';
+import { PageHeader } from '../components/shell/AppShell';
 import { EmptyState, ErrorState, Skeleton } from '../components/ui/Feedback';
 import { DataField } from '../components/ui/Panel';
 import { DetailPane, LIST_DETAIL_GRID } from '../components/ui/DetailPane';
@@ -57,7 +57,7 @@ export default function ApprovalsPage() {
 
   return (
     <div className="pb-10">
-      <PageHeader title="Approvals" actions={<SampleDataNote what="The queue" />}>
+      <PageHeader title="Approvals">
         Every write the assistant proposes waits here with its exact preview. A signature is bound to that preview and works once; after ten minutes it expires and nothing is written.
       </PageHeader>
 

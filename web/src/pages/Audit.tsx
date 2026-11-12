@@ -2,7 +2,7 @@ import { Link2, Link2Off, Search, ShieldCheck, ShieldX, ScrollText } from 'lucid
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { api, CONFIG_IDS, ROLES, type AuditEntry, type ChainCheck } from '../api';
-import { PageHeader, SampleDataNote } from '../components/shell/AppShell';
+import { PageHeader } from '../components/shell/AppShell';
 import { Button } from '../components/ui/Button';
 import { Hash, JsonBlock } from '../components/ui/Code';
 import { Dialog } from '../components/ui/Dialog';
@@ -81,7 +81,6 @@ export default function AuditPage() {
         title="Audit log"
         actions={
           <>
-            <SampleDataNote what="The log" />
             <Button variant="secondary" onClick={() => setConfirmTamper(true)} disabled={verify.kind === 'running'} icon={<Link2Off aria-hidden className="size-4" />}>
               Simulate tampering
             </Button>

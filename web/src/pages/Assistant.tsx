@@ -13,7 +13,7 @@ import { useToast } from '../components/ui/Toast';
 import { cn } from '../lib/cn';
 import { useMediaQuery } from '../lib/useMediaQuery';
 import { useApp } from '../state/AppState';
-import { SampleDataNote } from '../components/shell/AppShell';
+import { GatewayFlow, focusCall } from '../components/agent/GatewayFlow';
 
 const SUGGESTIONS = ['Duplicate the 2026 edition into 2027, skip archived events.', 'Archive the 2025 events.', 'What can you do?'];
 
@@ -239,14 +239,12 @@ export default function AssistantPage() {
   };
 
   const loading = !state.conv;
+  const focused = focusCall(state.calls);
   const runConfig = state.conv && state.messages.length ? state.conv.config : config?.id;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <h1 className="sr-only">Assistant</h1>
-      <div className="flex justify-end border-b border-line px-4 py-1.5">
-        <SampleDataNote what="The agent is a scripted demo and gateway decisions are simulated; Events data" />
-      </div>
       <div className="border-b border-line px-4 pt-2 min-[72rem]:hidden">
         <Tabs
           idBase={paneId}
@@ -269,10 +267,13 @@ export default function AssistantPage() {
           tabIndex={-1}
           className={cn('min-h-0 flex-col border-line min-[72rem]:flex min-[72rem]:border-r', pane === 'chat' ? 'flex' : 'hidden')}
         >
-          <div className="flex h-11 shrink-0 items-center gap-2 border-b border-line px-5">
-            <p className="m-0 min-w-0 truncate text-sm font-semibold">{state.conv?.title ?? 'Conversation'}</p>
-            {state.conv ? <span className="font-mono text-xs text-muted">{state.conv.id}</span> : null}
-            <Button size="sm" variant="ghost" className="ml-auto" onClick={() => void newConversation()} disabled={state.running} icon={<MessageSquarePlus aria-hidden className="size-3.5" />}>
+          <div className="flex h-12 shrink-0 items-center gap-2 border-b border-line px-5">
+            <p className="m-0 flex min-w-0 items-center gap-2 font-mono text-xs">
+              <span className="text-muted">Conversation</span>
+              {state.conv ? <span className="rounded border border-line bg-surface-1 px-2 py-0.5 font-semibold text-strong">{state.conv.id}</span> : null}
+              <span className="hidden truncate font-sans text-muted 2xl:inline">{state.conv && state.messages.length ? state.conv.title : ''}</span>
+            </p>
+            <Button size="sm" className="ml-auto" onClick={() => void newConversation()} disabled={state.running} icon={<MessageSquarePlus aria-hidden className="size-3.5" />}>
               New
             </Button>
           </div>
@@ -297,7 +298,7 @@ export default function AssistantPage() {
                           setDraft(s);
                           inputRef.current?.focus();
                         }}
-                        className="w-full rounded-sm border border-line bg-surface-1 px-3 py-2 text-left text-sm hover:border-line-strong hover:bg-surface-2"
+                        className="w-full rounded-lg border border-line bg-surface-1/60 p-2.5 text-left text-xs text-muted transition-colors hover:border-line-strong hover:bg-surface-1 hover:text-text"
                       >
                         {s}
                       </button>
@@ -341,7 +342,7 @@ export default function AssistantPage() {
             <label htmlFor="composer" className="sr-only">
               Message to the assistant
             </label>
-            <div className="rounded-sm border border-control bg-surface-1 focus-within:border-focus">
+            <div className="rounded-xl border border-control bg-surface-1 p-3 transition-[border-color,box-shadow] duration-[var(--dur-fast)] focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
               <textarea
                 id="composer"
                 ref={inputRef}
@@ -350,11 +351,11 @@ export default function AssistantPage() {
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={onKeyDown}
                 placeholder="Ask to duplicate an edition or archive old events…"
-                className="block max-h-40 min-h-12 w-full resize-none bg-transparent px-3 pt-2.5 text-[0.9rem] leading-relaxed text-text placeholder:text-muted focus:outline-none"
+                className="block max-h-40 min-h-12 w-full resize-none bg-transparent p-0 text-[0.84rem] leading-relaxed text-strong placeholder:text-muted focus:outline-none"
                 aria-describedby="composer-hint"
               />
-              <div className="flex items-center gap-3 px-3 pb-2">
-                <p id="composer-hint" className="m-0 text-xs text-muted">
+              <div className="mt-1 flex items-center gap-3 border-t border-line pt-2">
+                <p id="composer-hint" className="m-0 font-mono text-[0.6875rem] text-muted">
                   Enter to send · Shift+Enter for a new line
                 </p>
                 <Button type="submit" size="sm" variant="primary" className="ml-auto" disabled={!draft.trim() || state.running || loading} icon={<ArrowUp aria-hidden className="size-3.5" />}>
@@ -371,8 +372,8 @@ export default function AssistantPage() {
           tabIndex={-1}
           className={cn('min-h-0 flex-col min-[72rem]:flex', pane === 'activity' ? 'flex' : 'hidden')}
         >
-          <div className="flex min-h-11 shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b border-line px-6 py-2">
-            <h2 id="activity-title" className="m-0 text-sm font-semibold">
+          <div className="flex min-h-12 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-line px-6 py-2">
+            <h2 id="activity-title" className="m-0 text-[0.9375rem] font-semibold text-strong">
               Agent activity
             </h2>
             {runConfig ? (
@@ -380,19 +381,19 @@ export default function AssistantPage() {
                 run on <span className="font-mono text-text">{runConfig}</span> as <span className="text-text">{state.conv?.role ?? role}</span>
               </span>
             ) : null}
-            <ul aria-label="Decisions so far" className="m-0 ml-auto flex list-none items-center gap-4 p-0">
+            <ul aria-label="Decisions so far" className="m-0 ml-auto flex list-none flex-wrap items-center gap-2 p-0">
               <li>
-                <StatusChip spec={DECISION.allowed} variant="plain" size="sm" label={`Allowed ${tally.allowed}`} />
+                <StatusChip spec={DECISION.allowed} size="sm" label={`Allowed ${tally.allowed}`} />
               </li>
               <li>
-                <StatusChip spec={DECISION.needs_approval} variant="plain" size="sm" label={`Needs approval ${tally.waiting}`} />
+                <StatusChip spec={DECISION.needs_approval} size="sm" label={`Needs approval ${tally.waiting}`} />
               </li>
               <li>
-                <StatusChip spec={DECISION.blocked} variant="plain" size="sm" label={`Blocked ${tally.blocked}`} />
+                <StatusChip spec={DECISION.blocked} size="sm" label={`Blocked ${tally.blocked}`} />
               </li>
               {tally.leaked ? (
                 <li>
-                  <StatusChip spec={{ tone: 'stop', label: 'Leaked', icon: ShieldAlert }} variant="plain" size="sm" label={`Leaked ${tally.leaked}`} />
+                  <StatusChip spec={{ tone: 'stop', label: 'Leaked', icon: ShieldAlert }} size="sm" label={`Leaked ${tally.leaked}`} />
                 </li>
               ) : null}
             </ul>
@@ -403,10 +404,15 @@ export default function AssistantPage() {
                 When the agent calls a tool, the call appears here as a numbered step with the gateway’s decision: allowed, waiting for your approval, or blocked with the rule that stopped it.
               </EmptyState>
             ) : (
-              <>
+              <div className="flex flex-col gap-4 p-6">
+                {focused ? (
+                  <div className="sticky -top-6 z-[2] -mx-6 -mt-6 bg-bg/95 px-6 pt-6 pb-1 backdrop-blur-[2px]">
+                    <GatewayFlow call={focused} />
+                  </div>
+                ) : null}
                 <CueSheet calls={state.calls} approvals={state.approvals} role={role} live={live} onDecide={decide} />
                 {!state.running ? <RunSummary tally={tally} total={state.calls.length} config={state.conv?.config} /> : null}
-              </>
+              </div>
             )}
           </div>
         </section>
@@ -443,7 +449,7 @@ function RunSummary({ tally, total, config }: { tally: { allowed: number; waitin
   ].filter(Boolean);
   const tone = tally.leaked ? 'text-stop' : tally.blocked ? 'text-ok' : 'text-muted';
   return (
-    <p className={cn('eg-msg-in m-0 border-t border-line px-6 py-4 text-sm', tone)}>
+    <p className={cn('eg-msg-in m-0 rounded-xl border border-line bg-surface-1 px-4 py-3 text-sm', tone)}>
       <span className="font-semibold">Run summary: </span>
       <span className="text-text">{parts.join(' · ')}.</span>
     </p>

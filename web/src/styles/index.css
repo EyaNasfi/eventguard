@@ -8,44 +8,50 @@
 :root {
   color-scheme: dark;
 
-  /* Ground and structure (Run-of-Show Cue Sheet) */
-  --bg: #121417;
-  --surface-1: #1a1d22;
-  --surface-2: #21252b;
-  --surface-3: #2a2f36;
-  --rail: #0e1013;
-  --line: #2b2f36;
-  --line-strong: #3b414a;
+  /* Ground and structure (Console direction, 2026-11-12, after Aya's reference page) */
+  --bg: #0d1117;
+  --surface-1: #151b23;
+  --surface-2: #1c2430;
+  --surface-3: #222b38;
+  --rail: #0d1117;
+  --line: #2a3441;
+  --line-strong: #364152;
   /* Boundaries that identify a control (inputs, selects, switches): ≥ 3:1, WCAG 1.4.11 */
-  --control-line: #68707a;
+  --control-line: #6e7681;
 
   /* Text (all pairs ≥ 4.5:1 on --bg, --surface-1, --surface-2 and --surface-3) */
-  --text: #ece8df;
-  --text-muted: #a0a6af;
-  --text-on-accent: #121417;
+  --text: #c9d1d9;
+  --text-strong: #f0f6fc;
+  --text-muted: #8b949e;
+  --text-on-accent: #ffffff;
+
+  /* Brand: accents, active navigation, focus. Filled buttons use --brand-fill (white text ≥ 4.5:1). */
+  --brand: #7c8cff;
+  --brand-fill: #5865dc;
+  --brand-fill-hover: #4e5acb;
 
   /* Meaning */
-  --ok: #6ccb8f;
-  --hold: #f0b84e;
-  --stop: #f2705f;
-  --warn: #f09a5e;
-  --info: #8ab4f8;
-  --focus: #a9c8fb;
+  --ok: #3fb950;
+  --hold: #d29922;
+  --stop: #ff6a61;
+  --warn: #e3803a;
+  --info: #58a6ff;
+  --focus: #7c8cff;
 
-  --ok-bg: color-mix(in oklab, var(--ok) 13%, var(--surface-1));
-  --hold-bg: color-mix(in oklab, var(--hold) 13%, var(--surface-1));
-  --stop-bg: color-mix(in oklab, var(--stop) 14%, var(--surface-1));
+  --ok-bg: color-mix(in oklab, var(--ok) 15%, var(--surface-1));
+  --hold-bg: color-mix(in oklab, var(--hold) 15%, var(--surface-1));
+  --stop-bg: color-mix(in oklab, var(--stop) 15%, var(--surface-1));
   --warn-bg: color-mix(in oklab, var(--warn) 13%, var(--surface-1));
   --info-bg: color-mix(in oklab, var(--info) 13%, var(--surface-1));
 
-  --ok-line: color-mix(in oklab, var(--ok) 50%, var(--line));
-  --hold-line: color-mix(in oklab, var(--hold) 50%, var(--line));
-  --stop-line: color-mix(in oklab, var(--stop) 50%, var(--line));
+  --ok-line: color-mix(in oklab, var(--ok) 40%, var(--line));
+  --hold-line: color-mix(in oklab, var(--hold) 40%, var(--line));
+  --stop-line: color-mix(in oklab, var(--stop) 40%, var(--line));
   --warn-line: color-mix(in oklab, var(--warn) 50%, var(--line));
   --info-line: color-mix(in oklab, var(--info) 50%, var(--line));
 
   /* Type */
-  --eg-sans: 'Figtree Variable', ui-sans-serif, system-ui, sans-serif;
+  --eg-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --eg-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Mono', monospace;
 
   /* Motion (Emil: strong ease-out for UI, never ease-in) */
@@ -55,7 +61,7 @@
   --dur-fast: 160ms;
   --dur-base: 220ms;
 
-  --radius: 3px;
+  --radius: 8px;
 }
 
 @theme inline {
@@ -68,6 +74,12 @@
   --color-line-strong: var(--line-strong);
   --color-control: var(--control-line);
   --color-text: var(--text);
+  --color-strong: var(--text-strong);
+  --color-brand: var(--brand);
+  --color-brand-fill: var(--brand-fill);
+  --color-brand-fill-hover: var(--brand-fill-hover);
+  --color-brand-bg: color-mix(in oklab, var(--brand) 12%, var(--bg));
+  --color-brand-line: color-mix(in oklab, var(--brand) 35%, var(--line));
   --color-muted: var(--text-muted);
   --color-on-accent: var(--text-on-accent);
   --color-ok: var(--ok);
@@ -107,9 +119,9 @@
   --text-2xl: 1.75rem;
   --text-2xl--line-height: 2.2rem;
 
-  --radius-xs: 2px;
+  --radius-xs: 4px;
   --radius-sm: var(--radius);
-  --radius-md: 4px;
+  --radius-md: 12px;
 
   --ease-out: var(--eg-ease-out);
   --ease-in-out: var(--eg-ease-in-out);
@@ -123,7 +135,8 @@
     font-size: 100%;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    font-variant-numeric: tabular-nums;
+    /* Inter applies tabular widths to punctuation too, so tabular figures are opt-in (tables, timers, ids). */
+    font-variant-numeric: normal;
     scrollbar-color: var(--line-strong) transparent;
   }
 
@@ -409,5 +422,20 @@
 @keyframes eg-fade {
   from {
     opacity: 0;
+  }
+}
+
+/* Console restyle: the held node in the gateway flow breathes so the waiting step is found at a glance. */
+.eg-pulse {
+  animation: eg-breathe 1.6s ease-in-out infinite;
+}
+@keyframes eg-breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eg-pulse {
+    animation: none;
   }
 }

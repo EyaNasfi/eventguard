@@ -2,12 +2,13 @@ import {
   CalendarDays,
   ChartColumnBig,
   ClipboardCheck,
+  ExternalLink,
   FlaskConical,
   MessagesSquare,
-  Presentation,
   ScrollText,
   ShieldHalf,
   Shapes,
+  ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -23,7 +24,7 @@ interface NavItem {
   to: string;
   label: string;
   icon: LucideIcon;
-  /** Paused by PL decision #3; shown with a "coming later" mark. */
+  /** Paused by PL decision #3; listed under Infrastructure with a "Soon" mark. */
   later?: boolean;
 }
 
@@ -54,102 +55,135 @@ const ROLE_HINT: Record<Role, string> = {
   admin: 'everything, including attendees and the outbox',
 };
 
+/** Pages whose data is sample data in the current mode (Events is live when mocks are off). */
+function isSample(section: string): boolean {
+  return USE_MOCKS || section === 'assistant' || section === 'approvals' || section === 'audit';
+}
+
+function NavRow({ item, pendingApprovals }: { item: NavItem; pendingApprovals: number }) {
+  return (
+    <NavLink
+      to={item.to}
+      title={item.label}
+      className={({ isActive }) =>
+        cn(
+          'group relative flex h-9 items-center gap-2.5 rounded-lg border px-3 text-sm transition-colors duration-[var(--dur-fast)]',
+          isActive ? 'border-brand-line bg-brand-bg font-medium text-brand' : 'border-transparent text-muted hover:bg-surface-1 hover:text-text',
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <item.icon aria-hidden className="size-4 shrink-0" strokeWidth={2} />
+          <span className="sr-only xl:not-sr-only">{item.label}</span>
+          {item.later ? (
+            <span className="sr-only xl:not-sr-only xl:ml-auto xl:rounded xl:border xl:border-line xl:bg-surface-2 xl:px-1.5 xl:py-0.5 xl:text-[0.625rem] xl:font-medium xl:text-muted">
+              <span className="xl:hidden">, </span>Soon
+            </span>
+          ) : null}
+          {item.to === '/approvals' && pendingApprovals > 0 ? (
+            <>
+              {/* Icon rail: a dot that clears the icon; wide rail: the count. */}
+              <span aria-hidden className="absolute top-1.5 right-1.5 size-2 rounded-full bg-hold ring-2 ring-rail xl:hidden" />
+              <span className="sr-only xl:not-sr-only xl:ml-auto xl:rounded-full xl:border xl:border-hold-line xl:bg-hold-bg xl:px-1.5 xl:py-0.5 xl:font-mono xl:text-[0.6875rem] xl:font-medium xl:text-hold">
+                {pendingApprovals}
+                <span className="sr-only"> pending</span>
+              </span>
+            </>
+          ) : isActive && !item.later ? (
+            <span aria-hidden className="ml-auto hidden size-1.5 rounded-full bg-brand xl:block" />
+          ) : null}
+        </>
+      )}
+    </NavLink>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const { role, setRole, config, pendingApprovals, crumb } = useApp();
   const { pathname } = useLocation();
   const section = pathname.split('/')[1] ?? '';
+  const primary = NAV.filter((n) => !n.later);
+  const later = NAV.filter((n) => n.later);
 
   return (
-    <div className="grid h-dvh grid-cols-[3.5rem_minmax(0,1fr)] grid-rows-[3.25rem_minmax(0,1fr)] xl:grid-cols-[13.5rem_minmax(0,1fr)]">
-      <a href="#main" className="sr-only z-50 rounded-sm bg-text px-3 py-2 text-on-accent focus:not-sr-only focus:fixed focus:top-2 focus:left-2">
+    <div className="grid h-dvh grid-cols-[3.75rem_minmax(0,1fr)] grid-rows-[4rem_minmax(0,1fr)] xl:grid-cols-[16rem_minmax(0,1fr)]">
+      <a href="#main" className="sr-only z-50 rounded-lg bg-brand-fill px-3 py-2 text-on-accent focus:not-sr-only focus:fixed focus:top-2 focus:left-2">
         Skip to content
       </a>
 
-      <nav aria-label="Main" className="row-span-2 flex flex-col border-r border-line bg-rail">
-        <div className="flex h-13 items-center gap-2.5 px-4 xl:px-5">
-          <svg aria-hidden viewBox="0 0 16 16" className="size-4 shrink-0 text-text">
-            <rect x="1.5" y="1.5" width="13" height="13" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2" />
-            <path d="M5 8h6M8 5v6" stroke="currentColor" strokeWidth="2" />
-          </svg>
-          <span className="hidden text-md font-bold tracking-[0.005em] xl:inline">EventGuard</span>
+      <nav aria-label="Main" className="row-span-2 flex flex-col justify-between border-r border-line bg-rail select-none">
+        <div className="flex flex-col">
+          <div className="flex h-16 items-center gap-3 border-b border-line px-3.5 xl:px-5">
+            <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-brand-line bg-brand-bg text-brand">
+              <ShieldCheck className="size-4" strokeWidth={2.2} />
+            </span>
+            <span className="hidden items-center gap-2 xl:flex">
+              <span className="text-base font-semibold tracking-tight text-strong">EventGuard</span>
+              <span className="rounded border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[0.625rem] text-muted uppercase">Ops</span>
+            </span>
+          </div>
+          <ul className="m-0 flex list-none flex-col gap-1 p-2 xl:p-3">
+            {primary.map((item) => (
+              <li key={item.to}>
+                <NavRow item={item} pendingApprovals={pendingApprovals} />
+              </li>
+            ))}
+          </ul>
+          <p className="m-0 hidden px-6 pt-3 pb-1 text-[0.6875rem] font-semibold tracking-wider text-muted uppercase xl:block">Infrastructure</p>
+          <ul className="m-0 flex list-none flex-col gap-1 border-t border-line p-2 xl:border-t-0 xl:p-3 xl:pt-1">
+            {later.map((item) => (
+              <li key={item.to}>
+                <NavRow item={item} pendingApprovals={0} />
+              </li>
+            ))}
+          </ul>
         </div>
-        <ul className="m-0 flex list-none flex-col gap-px p-0 px-2 pt-2">
-          {NAV.map((item) => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                title={item.label}
-                className={({ isActive }) =>
-                  cn(
-                    'group relative flex h-9 items-center gap-3 rounded-sm px-2.5 text-sm font-medium transition-colors duration-[var(--dur-fast)]',
-                    isActive ? 'bg-surface-2 text-text' : 'text-muted hover:bg-surface-1 hover:text-text',
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <span aria-hidden className={cn('absolute top-2 bottom-2 left-0 w-0.5 rounded-full', isActive ? 'bg-info' : 'bg-transparent')} />
-                    <item.icon aria-hidden className="size-4 shrink-0" strokeWidth={isActive ? 2.2 : 1.8} />
-                    <span className="sr-only xl:not-sr-only">{item.label}</span>
-                    {item.later ? (
-                      <span className="sr-only xl:not-sr-only xl:ml-auto xl:rounded-xs xl:border xl:border-dashed xl:border-line-strong xl:px-1 xl:text-[0.6875rem] xl:leading-4 xl:font-medium xl:text-muted">
-                        <span className="xl:hidden">, </span>coming later
-                      </span>
-                    ) : null}
-                    {item.to === '/approvals' && pendingApprovals > 0 ? (
-                      <>
-                        {/* Icon rail: a dot that clears the icon; wide rail: the count. */}
-                        <span aria-hidden className="absolute top-1.5 right-1.5 size-2 rounded-full bg-hold ring-2 ring-rail xl:hidden" />
-                        <span className="sr-only xl:not-sr-only xl:ml-auto xl:rounded-xs xl:border xl:border-hold-line xl:bg-hold-bg xl:px-1 xl:font-mono xl:text-xs xl:leading-4 xl:font-semibold xl:text-hold">
-                          {pendingApprovals}
-                          <span className="sr-only"> pending</span>
-                        </span>
-                      </>
-                    ) : null}
-                  </>
-                )}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
 
-        <div className="mt-auto flex flex-col gap-px border-t border-line px-2 py-2">
-          <NavLink to="/demo" title="Demo page" className="flex h-8 items-center gap-3 rounded-sm px-2.5 text-xs text-muted hover:bg-surface-1 hover:text-text">
-            <Presentation aria-hidden className="size-4 shrink-0" strokeWidth={1.8} />
+        <div className="flex flex-col gap-1 border-t border-line p-2 xl:p-3">
+          <NavLink to="/demo" title="Demo page" className="flex h-8 items-center gap-2.5 rounded-lg px-3 text-[0.8125rem] text-muted hover:bg-surface-1 hover:text-text">
+            <ExternalLink aria-hidden className="size-4 shrink-0" />
             <span className="sr-only xl:not-sr-only">Demo page</span>
           </NavLink>
-          <NavLink to="/dev/components" title="Component gallery" className="flex h-8 items-center gap-3 rounded-sm px-2.5 text-xs text-muted hover:bg-surface-1 hover:text-text">
-            <Shapes aria-hidden className="size-4 shrink-0" strokeWidth={1.8} />
+          <NavLink to="/dev/components" title="Component gallery" className="flex h-8 items-center gap-2.5 rounded-lg px-3 text-[0.8125rem] text-muted hover:bg-surface-1 hover:text-text">
+            <Shapes aria-hidden className="size-4 shrink-0" />
             <span className="sr-only xl:not-sr-only">Components</span>
           </NavLink>
-          <p className="m-0 hidden px-2.5 pt-2 pb-1 text-xs text-muted xl:block">
+          <p className="m-0 hidden items-center gap-1.5 px-3 pt-2 text-[0.6875rem] text-muted xl:flex">
+            <span aria-hidden className={cn('size-2 rounded-full', USE_MOCKS ? 'bg-muted' : 'bg-ok')} />
             {USE_MOCKS ? 'Sample data · all fictional' : 'EventSim live · gateway sample data'}
           </p>
         </div>
       </nav>
 
-      <header className="flex min-w-0 items-center gap-3 border-b border-line bg-bg px-4 lg:px-5">
+      <header className="flex min-w-0 items-center gap-3 border-b border-line bg-bg px-4 lg:px-6">
         <nav aria-label="Breadcrumb" className="min-w-0">
-          <ol className="m-0 flex min-w-0 list-none items-center gap-1.5 p-0 text-sm">
-            <li className={cn('shrink-0', crumb ? 'text-muted' : 'font-semibold')} aria-current={crumb ? undefined : 'page'}>
+          <ol className="m-0 flex min-w-0 list-none items-center gap-2 p-0">
+            <li className={cn('shrink-0 text-xl font-semibold tracking-tight text-strong', crumb && '2xl:text-muted')} aria-current={crumb ? undefined : 'page'}>
               {TITLES[section] ?? 'EventGuard'}
             </li>
             {crumb ? (
-              <li className="flex min-w-0 items-center gap-1.5 font-semibold" aria-current="page">
+              <li className="hidden min-w-0 items-center gap-2 text-sm font-medium text-text 2xl:flex" aria-current="page">
                 <span aria-hidden className="text-muted">/</span>
                 <span className="truncate">{crumb}</span>
               </li>
             ) : null}
           </ol>
         </nav>
+        {isSample(section) ? (
+          <>
+            <span aria-hidden className="mx-1 hidden h-4 w-px bg-line lg:block" />
+            <SampleDataNote />
+          </>
+        ) : null}
         <div className="ml-auto flex items-center gap-3">
           <DemoGuide />
-          <label className="flex items-center gap-2 text-xs text-muted" title={ROLE_HINT[role]}>
-            <span>Acting as</span>
+          <label className="flex h-9 items-center gap-2 rounded-lg border border-line bg-surface-1 pr-1 pl-3 text-[0.8125rem]" title={ROLE_HINT[role]}>
+            <span className="text-muted">Acting as</span>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
-              className="h-9 rounded-sm border border-control bg-surface-1 pr-7 pl-2 text-sm font-semibold text-text hover:border-muted"
+              className="h-7 rounded-md border border-transparent bg-transparent pr-7 pl-1 font-medium text-strong hover:border-control focus-visible:border-focus"
             >
               {ROLES.map((r) => (
                 <option key={r} value={r}>
@@ -169,24 +203,28 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-/** Standard page header: one h1, a sentence of context, actions on the right. */
+/** Page header: the visible title lives in the top bar; the h1 stays for assistive tech. */
 export function PageHeader({ title, children, actions, className }: { title: string; children?: ReactNode; actions?: ReactNode; className?: string }) {
   return (
-    <div className={cn('flex flex-wrap items-end gap-x-6 gap-y-3 px-6 pt-6 pb-4', className)}>
+    <div className={cn('flex flex-wrap items-end gap-x-6 gap-y-3 px-6 pt-5 pb-4', className)}>
       <div className="min-w-0 flex-1">
-        <h1 className="text-xl font-semibold tracking-[-0.01em]">{title}</h1>
-        {children ? <div className="mt-1 max-w-[72ch] text-sm text-muted">{children}</div> : null}
+        <h1 className="sr-only">{title}</h1>
+        {children ? <div className="max-w-[72ch] text-sm text-muted">{children}</div> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }
 
-/** Says where a page's data comes from when it is not live. */
-export function SampleDataNote({ what }: { what: string }) {
+/** Says, in the top bar, that the page's data is sample data. */
+export function SampleDataNote({ what }: { what?: string } = {}) {
   return (
-    <p className="m-0 inline-flex items-center gap-1.5 rounded-xs border border-dashed border-line-strong px-2 py-0.5 text-xs text-muted">
-      <span className="font-semibold text-text">Sample data · not measured.</span> {what} is fictional, generated for the demo.
+    <p
+      className="m-0 hidden items-center gap-2 rounded-full border border-line bg-surface-1 px-2.5 py-1 text-xs text-muted lg:inline-flex"
+      title={what ? `${what} is fictional, generated for the demo.` : 'Fictional data, generated for the demo.'}
+    >
+      <span aria-hidden className="size-1.5 rounded-full bg-info" />
+      Sample data · not measured
     </p>
   );
 }

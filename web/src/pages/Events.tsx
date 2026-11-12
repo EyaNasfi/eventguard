@@ -2,7 +2,7 @@ import { Archive, ArchiveRestore, CalendarX2, Hourglass, Lock, MessagesSquare, U
 import { useEffect, useId, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { api, ApiError, type Approval, type EventRecord, type EventType } from '../api';
-import { PageHeader, SampleDataNote } from '../components/shell/AppShell';
+import { PageHeader } from '../components/shell/AppShell';
 import { Button, buttonClass } from '../components/ui/Button';
 import { DetailPane, LIST_DETAIL_GRID } from '../components/ui/DetailPane';
 import { Dialog } from '../components/ui/Dialog';
@@ -103,7 +103,7 @@ export default function EventsPage() {
 
   return (
     <div className="pb-10">
-      <PageHeader title="Events" actions={api.source.events === 'mock' ? <SampleDataNote what="EventSim seed 42 (copy)" /> : null}>
+      <PageHeader title="Events">
         The EventSim records the assistant works on. Nothing is ever deleted: archiving hides a record and unarchiving restores it.
       </PageHeader>
 

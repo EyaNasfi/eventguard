@@ -30,3 +30,11 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 ## Unresolved
 
 - Whether the gateway records unchained traces when audit_log is off (C0–C2); the UI shows activity but no audit entries for those runs.
+
+## Direction update (2026-11-12, pinned by the user)
+
+The user supplied a reference page ("EventGuard Console") and asked the app to follow it. It replaces the cue-sheet world (the brief wins):
+- GitHub-dark palette (#0D1117 / #151B23 / #1C2430, borders #2A3441), Inter + JetBrains Mono, 8–12px radii, tinted rounded pills, brand #7C8CFF for active navigation, focus and accents.
+- Primary buttons use #5865DC (white text 4.87:1) instead of #7C8CFF (2.98:1, fails AA). Red text #FF6A61 instead of #F85149 (passes on its tinted background).
+- Sidebar: brand tile + OPS tag, Infrastructure group with "Soon" badges. Top bar: large page title, sample-data pill, "Acting as" pill, shield config pill.
+- Assistant: chat bubbles with an EG avatar, a sticky "Gateway execution flow" strip for the call that matters, numbered tool-call cards, raised approval card with count tiles. Real seed counts kept (the reference's 18/27/9 do not match the data).

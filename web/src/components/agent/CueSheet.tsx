@@ -5,8 +5,8 @@ import { presetLayers } from '../../api/gateway-model';
 import type { Approval, Role, ToolCall } from '../../api/types';
 import { cn } from '../../lib/cn';
 import { fmtArgs, fmtTime } from '../../lib/format';
-import { JsonBlock } from '../ui/Code';
 import { buttonClass } from '../ui/Button';
+import { JsonBlock } from '../ui/Code';
 import { APPROVAL, DECISION, NUMERAL_TONE, type StatusSpec } from '../ui/status';
 import { StatusChip } from '../ui/StatusChip';
 import { CheckTrail } from './CheckTrail';
@@ -28,6 +28,16 @@ function cueState(call: ToolCall, approval: Approval | undefined): CueState {
 
 const NUMBER_TONE: Record<CueState, string> = { ...NUMERAL_TONE, held: NUMERAL_TONE.needs_approval };
 
+const FRAME: Record<CueState, string> = {
+  allowed: 'border-line',
+  executed: 'border-line',
+  held: 'border-hold-line shadow-lg shadow-black/25',
+  blocked: 'border-stop-line',
+  leaked: 'border-stop-line',
+  rejected: 'border-line',
+  expired: 'border-dashed border-warn-line',
+};
+
 const EXECUTED: StatusSpec = { tone: 'ok', label: 'Approved and executed', icon: CircleCheck };
 
 interface CueSheetProps {
@@ -38,21 +48,18 @@ interface CueSheetProps {
   onDecide: (approvalId: string, approve: boolean) => Promise<void>;
 }
 
-/**
- * The agent's run as a calling script: numbered cues in the margin, one tool call per
- * cue line, writes held at the gateway until a person approves.
- */
+/** The agent's run: one numbered card per tool call; writes are held until a person approves. */
 export function CueSheet({ calls, approvals, role, live, onDecide }: CueSheetProps) {
   const seenApprovals = new Set<string>();
   return (
-    <ol className="eg-script relative m-0 list-none p-0">
+    <ol className="m-0 flex list-none flex-col gap-3 p-0">
       {calls.map((call, i) => {
         const approval = call.approvalId ? approvals[call.approvalId] : undefined;
         const showCard = Boolean(approval && !seenApprovals.has(approval.id));
         const coveredBy = approval && !showCard ? approval.id : undefined;
         if (approval) seenApprovals.add(approval.id);
         return (
-          <CueLine
+          <CallCard
             key={call.id}
             n={i + 1}
             call={call}
@@ -69,7 +76,7 @@ export function CueSheet({ calls, approvals, role, live, onDecide }: CueSheetPro
   );
 }
 
-function CueLine({
+function CallCard({
   n,
   call,
   approval,
@@ -94,113 +101,120 @@ function CueLine({
   const alarm = state === 'blocked' || state === 'leaked';
   const audited = presetLayers(call.config).audit_log;
   const argsText = fmtArgs(call.args);
+  // Reads stay compact; the checkpoint trail is evidence where something was decided.
+  const showTrail = state !== 'allowed' && state !== 'executed';
 
   return (
-    <li className={cn('grid grid-cols-[4.5rem_minmax(0,1fr)] sm:grid-cols-[5.5rem_minmax(0,1fr)]', live && 'eg-cue-in')} aria-label={`Step ${n}: ${call.tool}, ${spec.label}`} data-alarm={alarm || undefined}>
-      <div className="pt-3 pl-4 sm:pl-6">
-        <span aria-hidden className={cn('block font-mono text-[1.75rem] leading-none font-light tracking-[-0.03em] transition-colors duration-[var(--dur-base)] ease-out', NUMBER_TONE[state], state === 'allowed' && 'opacity-70')}>
-          {n}
+    <li
+      className={cn('rounded-xl border bg-surface-1 p-4 transition-[border-color] duration-[var(--dur-base)] ease-out', FRAME[state], live && 'eg-cue-in')}
+      aria-label={`Step ${n}: ${call.tool}, ${spec.label}`}
+      data-alarm={alarm || undefined}
+    >
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+        <span aria-hidden className={cn('font-mono text-xs tabular-nums', NUMBER_TONE[state])}>
+          {String(n).padStart(2, '0')}
         </span>
-        <span className="mt-1.5 block text-xs text-muted tabular-nums">{fmtTime(call.requestedAt)}</span>
+        <h3 className={cn('m-0 rounded-md border bg-surface-2 px-2 py-0.5 font-mono text-[0.8125rem] font-semibold text-strong', state === 'held' ? 'border-hold-line' : 'border-line')}>
+          {call.tool}
+          {call.batch ? <span className="ml-1 font-normal text-muted">×{call.batch}</span> : null}
+        </h3>
+        {argsText ? (
+          <span className="mono min-w-0 flex-1 truncate text-xs text-muted" title={argsText}>
+            ({argsText})
+          </span>
+        ) : (
+          <span className="mono flex-1 text-xs text-muted">()</span>
+        )}
+        <span className="ml-auto flex shrink-0 items-center gap-2.5" key={state}>
+          <span className="font-mono text-xs text-muted tabular-nums">{fmtTime(call.requestedAt)}</span>
+          {call.verdict.rule && state === 'blocked' ? (
+            <span className="hidden rounded-md border border-stop-line bg-stop-bg px-2 py-0.5 font-mono text-xs text-stop 2xl:inline">{call.verdict.rule}</span>
+          ) : null}
+          <StatusChip spec={spec} size="sm" className={live ? 'eg-verdict-in' : 'eg-swap'} />
+        </span>
       </div>
 
-      <div className="min-w-0 border-b border-line py-3 pr-4 pl-4 sm:pr-6 sm:pl-5">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h3 className="m-0 font-mono text-[0.84rem] font-semibold">
-            {call.tool}
-            {call.batch ? <span className="ml-1 font-normal text-muted">×{call.batch}</span> : null}
-          </h3>
-          <span className="ml-auto flex min-w-0 items-baseline gap-2" key={`${state}`}>
-            <StatusChip spec={spec} variant="plain" size="sm" className={live ? 'eg-verdict-in' : 'eg-swap'} />
-            {call.verdict.rule && state === 'blocked' ? <span className="mono truncate text-xs text-muted">{call.verdict.rule}</span> : null}
-          </span>
+      {state === 'blocked' ? (
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <p className="m-0 flex items-start gap-1.5 text-sm text-stop">
+            <ShieldOff aria-hidden className="mt-0.5 size-4 shrink-0" />
+            <span>
+              <span className="font-semibold">Blocked at the gateway:</span> <span className="text-text">{call.verdict.reason}</span>. Nothing was executed.
+              {call.verdict.rule ? <span className="mono ml-1 text-xs text-muted 2xl:hidden">({call.verdict.rule})</span> : null}
+            </span>
+          </p>
+          {audited ? <AuditButton id={call.id} /> : null}
         </div>
+      ) : state === 'rejected' ? (
+        <p className="m-0 mt-2.5 text-sm text-muted">
+          <span className="font-semibold text-text">Rejected{approval?.decidedBy ? ` by ${approval.decidedBy}` : ''}.</span> Nothing was executed.
+        </p>
+      ) : state === 'expired' ? (
+        <p className="m-0 mt-2.5 text-sm text-muted">
+          <span className="font-semibold text-warn">Approval expired.</span> Nothing was executed.
+        </p>
+      ) : call.result ? (
+        <p className="m-0 mt-2 text-sm text-muted">{call.result.summary}</p>
+      ) : null}
 
-        {argsText ? (
-          <p className="mono m-0 mt-0.5 truncate text-xs text-muted" title={argsText}>
-            {argsText}
-          </p>
-        ) : null}
-
-        {state === 'blocked' ? (
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-2">
-            <p className="m-0 flex items-start gap-1.5 text-sm text-stop">
-              <ShieldOff aria-hidden className="mt-0.5 size-4 shrink-0" />
-              <span>
-                <span className="font-semibold">Blocked at the gateway:</span> <span className="text-text">{call.verdict.reason}</span>. Nothing was executed.
-              </span>
-            </p>
-            {audited ? <AuditButton id={call.id} /> : null}
-          </div>
-        ) : state === 'rejected' ? (
-          <p className="m-0 mt-1 text-sm text-muted">
-            <span className="font-semibold text-text">Rejected{approval?.decidedBy ? ` by ${approval.decidedBy}` : ''}.</span> Nothing was executed.
-          </p>
-        ) : state === 'expired' ? (
-          <p className="m-0 mt-1 text-sm text-muted">
-            <span className="font-semibold text-warn">Approval expired.</span> Nothing was executed.
-          </p>
-        ) : call.result ? (
-          <p className="m-0 mt-1 text-sm text-muted">{call.result.summary}</p>
-        ) : null}
-
-        <div className="mt-2">
+      {showTrail || open ? (
+        <div className="mt-3">
           <CheckTrail checkpoints={call.verdict.checkpoints} live={live} {...(coveredBy ? { coveredBy } : {})} />
         </div>
+      ) : null}
 
-        {call.oracle ? (
-          <div role="alert" className={cn('mt-2.5 rounded-sm border border-stop-line bg-stop-bg px-3 py-2', live && 'eg-verdict-in')}>
-            <p className="m-0 flex items-center gap-1.5 text-sm font-semibold text-stop">
-              <ShieldAlert aria-hidden className="size-4" />
-              Attack succeeded: data left the organisation
-            </p>
-            <p className="m-0 mt-0.5 text-sm text-text">{call.oracle.finding}</p>
-            <p className="m-0 mt-1 text-xs text-muted">Evaluation oracle finding. In production nothing flags this under {call.config}: the gateway let it through, and {call.config} keeps no audit entry.</p>
-          </div>
-        ) : null}
-
-        {call.result?.redacted?.length ? (
-          <p className="m-0 mt-2 text-xs text-muted">
-            <span className="font-semibold text-text">Output filter withheld:</span> <span className="mono">{call.result.redacted.join(', ')}</span>
+      {call.oracle ? (
+        <div role="alert" className={cn('mt-3 rounded-lg border border-stop-line bg-stop-bg px-3 py-2.5', live && 'eg-verdict-in')}>
+          <p className="m-0 flex items-center gap-1.5 text-sm font-semibold text-stop">
+            <ShieldAlert aria-hidden className="size-4" />
+            Attack succeeded: data left the organisation
           </p>
-        ) : null}
-
-        {call.result?.untrusted?.length ? (
-          <div className="mt-2.5 flex flex-col gap-2">
-            {call.result.untrusted.map((u) => (
-              <UntrustedText key={u.source} excerpt={u} />
-            ))}
-          </div>
-        ) : null}
-
-        {showCard && approval ? (
-          <div className="mt-3">
-            <PreviewCard id={`preview-${approval.id}`} headingLevel={4} approval={approval} role={role} live={live} onDecide={(ok) => onDecide(approval.id, ok)} />
-          </div>
-        ) : null}
-
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-          <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="-ml-1 inline-flex h-6 items-center gap-1 rounded-xs px-1 text-xs font-semibold text-muted hover:text-text">
-            <ChevronRight aria-hidden className={cn('size-3.5 transition-transform duration-[var(--dur-fast)] ease-out motion-reduce:transition-none', open && 'rotate-90')} />
-            {open ? 'Hide' : 'Show'} arguments and result
-          </button>
-          <span className="font-mono text-xs text-muted">{call.id}</span>
-          {audited ? (
-            <Link to={`/audit?q=${encodeURIComponent(call.id)}`} className="inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-text">
-              <FileSearch aria-hidden className="size-3.5" />
-              Audit entry
-            </Link>
-          ) : (
-            <span className="text-xs text-muted">Not in the audit log ({call.config} has it off)</span>
-          )}
+          <p className="m-0 mt-0.5 text-sm text-strong">{call.oracle.finding}</p>
+          <p className="m-0 mt-1 text-xs text-muted">Evaluation oracle finding. In production nothing flags this under {call.config}: the gateway let it through, and {call.config} keeps no audit entry.</p>
         </div>
-        {open ? (
-          <div className="mt-2 grid gap-2 lg:grid-cols-2">
-            <JsonBlock label="Arguments" value={call.args} maxHeight="max-h-48" />
-            <JsonBlock label="Result" value={call.result ?? { status: 'pending' }} maxHeight="max-h-48" />
-          </div>
-        ) : null}
+      ) : null}
+
+      {call.result?.redacted?.length ? (
+        <p className="m-0 mt-2 text-xs text-muted">
+          <span className="font-semibold text-text">Output filter withheld:</span> <span className="mono">{call.result.redacted.join(', ')}</span>
+        </p>
+      ) : null}
+
+      {call.result?.untrusted?.length ? (
+        <div className="mt-3 flex flex-col gap-2">
+          {call.result.untrusted.map((u) => (
+            <UntrustedText key={u.source} excerpt={u} />
+          ))}
+        </div>
+      ) : null}
+
+      {showCard && approval ? (
+        <div className="mt-4">
+          <PreviewCard id={`preview-${approval.id}`} headingLevel={4} approval={approval} role={role} live={live} onDecide={(ok) => onDecide(approval.id, ok)} />
+        </div>
+      ) : null}
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line pt-2.5">
+        <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="-ml-1 inline-flex h-6 items-center gap-1 rounded-md px-1 text-xs font-medium text-muted hover:text-text">
+          <ChevronRight aria-hidden className={cn('size-3.5 transition-transform duration-[var(--dur-fast)] ease-out motion-reduce:transition-none', open && 'rotate-90')} />
+          {open ? 'Hide' : 'Show'} details
+        </button>
+        <span className="font-mono text-xs text-muted">{call.id}</span>
+        {audited ? (
+          <Link to={`/audit?q=${encodeURIComponent(call.id)}`} className="inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-text">
+            <FileSearch aria-hidden className="size-3.5" />
+            Audit entry
+          </Link>
+        ) : (
+          <span className="text-xs text-muted">Not in the audit log ({call.config} has it off)</span>
+        )}
       </div>
+      {open ? (
+        <div className="mt-2 grid gap-2 lg:grid-cols-2">
+          <JsonBlock label="Arguments" value={call.args} maxHeight="max-h-48" />
+          <JsonBlock label="Result" value={call.result ?? { status: 'pending' }} maxHeight="max-h-48" />
+        </div>
+      ) : null}
     </li>
   );
 }

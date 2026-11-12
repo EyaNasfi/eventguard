@@ -14,7 +14,7 @@ function ReviewButton({ id, status, onReview }: { id: string; status: string; on
     <button
       type="button"
       onClick={() => onReview(id)}
-      className={cn('mt-2.5 inline-flex h-7 items-center gap-1.5 rounded-sm border px-2.5 text-xs font-semibold text-text hover:brightness-125 active:scale-[0.97]', tone.line, tone.bg)}
+      className={cn('inline-flex h-7 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold text-text hover:brightness-125 active:scale-[0.97]', tone.line, tone.bg)}
     >
       <Icon aria-hidden className={cn('size-3.5', tone.text)} />
       {s === 'pending' ? 'Review the preview' : `${spec.label}: view preview`}
@@ -35,18 +35,18 @@ interface ChatMessageProps {
 export function ChatMessage({ message, role, approvalStatus, onReview, live }: ChatMessageProps) {
   if (message.author === 'user') {
     return (
-      <li className={cn('flex flex-col items-end', live && 'eg-msg-in')}>
-        <p className="m-0 mb-1 text-xs text-muted">
-          <span className="font-semibold text-text">You</span> · {role} · {fmtTime(message.at)}
+      <li className={cn('ml-auto flex max-w-[90%] flex-col items-end gap-1.5', live && 'eg-msg-in')}>
+        <p className="m-0 font-mono text-[0.6875rem] text-muted">
+          You · {role} · {fmtTime(message.at).slice(0, 5)}
         </p>
-        <p className="m-0 max-w-[34ch] rounded-sm border border-line bg-surface-1 px-3.5 py-2.5 text-[0.9rem] leading-relaxed sm:max-w-[40ch]">{message.text}</p>
+        <p className="m-0 rounded-xl rounded-tr-sm border border-line bg-surface-2 p-3.5 text-[0.84rem] leading-relaxed text-strong shadow-sm">{message.text}</p>
       </li>
     );
   }
 
   if (message.author === 'oracle') {
     return (
-      <li data-alarm className={cn('flex gap-2.5 rounded-sm border border-stop-line bg-stop-bg px-3 py-2 text-sm', live && 'eg-msg-in')}>
+      <li data-alarm className={cn('flex gap-2.5 rounded-xl border border-stop-line bg-stop-bg px-3 py-2 text-sm', live && 'eg-msg-in')}>
         <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-stop" />
         <div>
           <p className="m-0">
@@ -63,7 +63,7 @@ export function ChatMessage({ message, role, approvalStatus, onReview, live }: C
     const blocked = /^Blocked|refused|quarantined/i.test(message.text);
     const Icon = blocked ? Ban : Hourglass;
     return (
-      <li className={cn('flex gap-2.5 rounded-sm border px-3 py-2 text-sm', blocked ? 'border-stop-line bg-stop-bg' : 'border-hold-line bg-hold-bg', live && 'eg-msg-in')}>
+      <li className={cn('flex gap-2.5 rounded-xl border px-3 py-2.5 text-sm', blocked ? 'border-stop-line bg-stop-bg' : 'border-hold-line bg-hold-bg', live && 'eg-msg-in')}>
         <Icon aria-hidden className={cn('mt-0.5 size-4 shrink-0', blocked ? 'text-stop' : 'text-hold')} />
         <p className="m-0">
           <span className={cn('font-semibold', blocked ? 'text-stop' : 'text-hold')}>Gateway · </span>
@@ -74,13 +74,25 @@ export function ChatMessage({ message, role, approvalStatus, onReview, live }: C
   }
 
   return (
-    <li className={cn('flex flex-col items-start', live && 'eg-msg-in')}>
-      <p className="m-0 mb-1 text-xs text-muted">
-        <span className="font-semibold text-text">Agent</span> · {fmtTime(message.at)}
-      </p>
-      <p className="m-0 max-w-[60ch] text-[0.9rem] leading-relaxed">{message.text}</p>
+    <li className={cn('mr-auto flex max-w-[96%] flex-col items-start gap-1.5', live && 'eg-msg-in')}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span aria-hidden className="flex size-5 items-center justify-center rounded border border-brand-line bg-brand-bg font-mono text-[0.625rem] font-bold text-brand">
+          EG
+        </span>
+        <span className="font-mono text-[0.6875rem] text-muted">
+          EventGuard agent · {fmtTime(message.at).slice(0, 5)}
+        </span>
+        {message.approvalId && approvalStatus === 'pending' ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-hold-line bg-hold-bg px-2 py-0.5 text-[0.6875rem] font-medium text-hold">
+            <Hourglass aria-hidden className="size-3" />
+            Awaiting human approval
+          </span>
+        ) : null}
+      </div>
+      <div className="space-y-2.5 rounded-xl rounded-tl-sm border border-line bg-surface-1 p-4 text-[0.84rem] leading-relaxed shadow-sm">
+      <p className="m-0 max-w-[60ch] text-strong">{message.text}</p>
       {message.plan?.length ? (
-        <ol className="m-0 mt-2 flex list-none flex-col gap-1 border-l border-line-strong p-0 pl-3">
+        <ol className="m-0 flex list-none flex-col gap-1 rounded-lg border border-line bg-bg p-2.5">
           {message.plan.map((s, i) => (
             <li key={i} className="flex items-start gap-2 text-sm text-muted">
               {s.kind === 'write' ? <PenLine aria-hidden className="mt-0.5 size-3.5 shrink-0 text-text" /> : <BookOpenCheck aria-hidden className="mt-0.5 size-3.5 shrink-0" />}
@@ -93,6 +105,7 @@ export function ChatMessage({ message, role, approvalStatus, onReview, live }: C
         </ol>
       ) : null}
       {message.approvalId && onReview ? <ReviewButton id={message.approvalId} status={approvalStatus ?? 'pending'} onReview={onReview} /> : null}
+      </div>
     </li>
   );
 }

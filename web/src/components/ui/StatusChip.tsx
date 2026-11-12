@@ -28,11 +28,11 @@ export function StatusChip({ spec, label, variant = 'chip', size = 'md', classNa
     <span
       title={title}
       className={cn(
-        'inline-flex max-w-full items-center gap-1 rounded-xs border font-semibold whitespace-nowrap',
+        'inline-flex max-w-full items-center gap-1 border font-medium whitespace-nowrap',
         t.text,
         t.line,
         t.bg,
-        variant === 'stamp' ? cn('px-1.5 font-mono uppercase tracking-[0.08em]', size === 'sm' ? 'text-2xs' : 'text-xs') : size === 'sm' ? 'h-5 px-1.5 text-2xs' : 'h-6 px-2 text-xs',
+        variant === 'stamp' ? cn('rounded-md px-1.5 font-mono uppercase tracking-[0.06em]', size === 'sm' ? 'text-2xs' : 'text-xs') : cn('rounded-full font-mono', size === 'sm' ? 'h-5 px-2 text-[0.6875rem]' : 'h-6 px-2.5 text-xs'),
         variant === 'stamp' && (size === 'sm' ? 'h-5' : 'h-6'),
         className,
       )}
