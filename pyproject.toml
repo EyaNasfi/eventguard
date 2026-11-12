@@ -56,6 +56,7 @@ ignore = ["B008"]  # FastAPI Depends() in defaults
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]
+"tests/test_gateway_calllog.py" = ["F811"]  # pytest fixtures imported from test_gateway by name
 
 [tool.mypy]
 python_version = "3.12"

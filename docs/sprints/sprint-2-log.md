@@ -169,3 +169,21 @@ Branch `s2/S2-04-agent-c0`.
 - n8n prefixes tool names with the node name (`EventGuard_gateway_search_procedures`); the gateway sees the plain names.
 
 **Next:** S2-05 (run logging).
+
+## 2026-11-13 01:05 — S2-05 Run logging (FR-AGT-08, NFR-02)
+
+Branch `s2/S2-05-run-logging`.
+
+- **Tool calls:** `gateway/calllog.py`. The gateway appends one JSON line per call to `GATEWAY_TOOL_LOG` = `/logs/tool_calls.jsonl` in the container = `logs/tool_calls.jsonl` on the host (bind mount, gitignored). Fields: `ts`, `session_id` (from `/mcp?eg_session=…`, ADR-005; dropped unless short and plain), `user`, `role`, `config_name`, `config_hash`, `model`, `temperature`, `git_commit`, `tool`, `arguments`, `outcome` (ok / error / refused), `http_status`, `message`, `latency_ms`. Unknown tools and `/_test/*` refusals are logged too.
+- **Git commit:** passed to the gateway as `EVENTGUARD_GIT_COMMIT` by `scripts/lab-up.ps1` (`unknown` otherwise).
+- **Agent runs:** `agent/export_runs.py` reads n8n executions through the public API and appends one line per run to `logs/agent_runs.jsonl`: role, session, status, latency, model calls, prompt/completion/total tokens, the model **of the workflow version that ran**, temperature, config name and hash (for that model), git commit. Re-runs append only new executions.
+- **Model version:** n8n 2.47.5 does **not** store the served model version (the Gemini node output has `tokenUsage` and `generationInfo` only). Proposal, implemented: `agent/model_probe.py` makes one ~10-token call per batch and records `model_version`; the smoke run uses it.
+- **Bug found and fixed:** the gateway image lacked `agent/prompts/c0_system.md`, so its config hash (prompt hash = null) differed from the host's. The Dockerfile now copies the prompt; both now report `a0ec42ae67…` for C0 with `gemini-3.5-flash-lite`.
+- **Bug found and fixed:** the first export stamped every run with the current `.env` model; it now reads the model from each execution's saved workflow.
+- **Tests:** `tests/test_gateway_calllog.py` (9: one line per call with session and hash, 403 logged as error, `/_test` refusal logged, unknown tool logged, session cleaning), `tests/test_agent_export_runs.py` (3).
+- **Live:** Docker probe → 8 lines in `logs/tool_calls.jsonl` with commit and config hash; export of tonight's 6 executions with the right model per run. EventSim reset to seed 42 afterwards.
+- **Gemini in this task:** 0 calls.
+
+**How to verify:** manual guide L18.
+
+**Next:** S2-06 (40 tasks + checkers).

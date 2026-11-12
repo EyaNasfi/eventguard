@@ -7,6 +7,8 @@ COPY pyproject.toml ./
 COPY eventsim ./eventsim
 COPY config ./config
 COPY gateway ./gateway
+# The system prompt is part of the config hash (NFR-02): same file in the image, same hash as the host.
+COPY agent/prompts ./agent/prompts
 RUN pip install --no-cache-dir ".[gateway]" && useradd --create-home gateway
 
 USER gateway

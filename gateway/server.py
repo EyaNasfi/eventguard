@@ -8,6 +8,8 @@ signatures (SR-10). Bearer authentication uses the SDK's `BearerAuthBackend` (SR
 import json
 import logging
 import os
+import time
+from pathlib import Path
 from typing import Any
 
 import mcp_types as types
@@ -20,6 +22,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 from config.loader import ResolvedConfig, resolve
+from gateway.calllog import ToolCallLog, clean_session
 from gateway.identity import StaticTokenVerifier, role_of
 from gateway.pipeline import Pipeline, ToolCall, ToolResult, build_pipeline
 from gateway.platform import EventSimClient, PlatformClient
@@ -45,9 +48,13 @@ class Gateway:
         config: ResolvedConfig,
         platform: PlatformClient,
         procedures: ProcedureSearch | None = None,
+        calllog: ToolCallLog | None = None,
     ) -> None:
         self.config = config
         self.platform = platform
+        self.calllog = calllog or ToolCallLog(
+            None, config.model.name, config.model.temperature, "unknown"
+        )
         self.registry: Registry = full_registry(procedures, config.retrieval.k_default).select(
             config.tools
         )
@@ -68,16 +75,33 @@ class Gateway:
             )
         return tools
 
-    async def call(self, role: Any, name: str, arguments: dict[str, Any]) -> ToolResult:
-        spec = self.registry.get(name)
-        if spec is None:
-            return ToolResult("refused", message=f"unknown tool '{name}' in configuration")
+    async def call(
+        self, role: Any, name: str, arguments: dict[str, Any], session: str | None = None
+    ) -> ToolResult:
         call = ToolCall(
             tool=name,
             arguments=arguments,
             role=role,
             config_name=self.config.name,
             config_hash=self.config.hash,
+        )
+        result = await self._call(call)
+        latency = int((time.perf_counter() - call.started) * 1000)
+        self.calllog.record(call, result, clean_session(session), latency)
+        return result
+
+    async def _call(self, call: ToolCall) -> ToolResult:
+        name = call.tool
+        spec = self.registry.get(name)
+        if spec is None:
+            return ToolResult("refused", message=f"unknown tool '{name}' in configuration")
+        call = ToolCall(
+            tool=name,
+            arguments=call.arguments,
+            role=call.role,
+            config_name=call.config_name,
+            config_hash=call.config_hash,
+            started=call.started,
         )
 
         async def handler(c: ToolCall) -> ToolResult:
@@ -102,7 +126,12 @@ def build_server(gateway: Gateway) -> Server[Any]:
         if role is None:  # unreachable behind RequireAuthMiddleware; kept as a guard
             result = ToolResult("refused", message="no authenticated user on this request")
         else:
-            result = await gateway.call(role, params.name, dict(params.arguments or {}))
+            request = getattr(ctx, "request", None)
+            query = getattr(request, "query_params", None)
+            session = query.get("eg_session") if query is not None else None
+            result = await gateway.call(
+                role, params.name, dict(params.arguments or {}), session=session
+            )
         return types.CallToolResult(
             content=[types.TextContent(type="text", text=_content(result))],
             is_error=result.outcome != "ok",
@@ -147,7 +176,13 @@ def create_app() -> Starlette:
     settings = GatewaySettings()
     config = resolve(settings.config_name, env=dict(os.environ))
     platform = EventSimClient(settings.eventsim_url, settings.eventsim_tokens())
-    gateway = Gateway(config, platform, RetrieverClient(settings.retriever_url))
+    calllog = ToolCallLog(
+        Path(settings.tool_log) if settings.tool_log else None,
+        config.model.name,
+        config.model.temperature,
+        settings.git_commit,
+    )
+    gateway = Gateway(config, platform, RetrieverClient(settings.retriever_url), calllog)
     log.info(
         "gateway up: config %s (%s), %d tools, tool descriptions sha256 %s",
         config.name,

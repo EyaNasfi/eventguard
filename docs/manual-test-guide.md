@@ -276,3 +276,14 @@ python -m agent.inspect_run --last 4                     # status, errors, model
 Before the duplication, reset and snapshot EventSim (section 0 short names): `curl.exe ... "$U/_test/reset"` then `curl.exe -s -o NUL -w $W -X POST -H $T "$U/_test/snapshot"`; afterwards `curl.exe -s -H $T "$U/_test/state-diff"`.
 Each chat message costs 3–8 Gemini calls. **Free tier: 20 generation requests per day per model** for `gemini-3.5-flash` (shared with `gemini-3.6-flash`).
 Screenshots: `python scripts/n8n_screenshots.py docs/sprints/screenshots-s2 "EventGuard C0 agent (editor):<execution id>:file.png"`.
+
+### L18 Run logging (S2-05) — Rehearsed 2026-11-13
+```powershell
+.\scripts\lab-up.ps1 -Dev                 # passes the git commit to the gateway, then compose up
+Get-Content scripts\gateway_probe.py -Raw | docker compose exec -T gateway python -
+Get-Content logs\tool_calls.jsonl -Tail 3  # one JSON line per tool call: ts, session_id, role, config_name, config_hash,
+                                           # model, temperature, git_commit, tool, arguments, outcome, latency_ms
+python -m agent.export_runs                # appends new n8n executions to logs\agent_runs.jsonl (tokens, latency, model)
+python -m agent.model_probe                # 1 tiny Gemini call: the model version Google really serves
+```
+Expected: `raw_api_call` to `/_test/...` appears with `"outcome": "refused"`. The `config_hash` in the gateway log equals the one printed by `python -m config` on the host.
