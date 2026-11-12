@@ -40,7 +40,7 @@ requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["eventsim*", "config*", "gateway*"]
+include = ["eventsim*", "config*", "gateway*", "agent*", "bench*"]
 
 [tool.setuptools.package-data]
 config = ["configurations.yaml"]
@@ -60,7 +60,7 @@ ignore = ["B008"]  # FastAPI Depends() in defaults
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-files = ["eventsim", "config", "gateway", "tests", "scripts"]
+files = ["eventsim", "config", "gateway", "tests", "scripts", "agent"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

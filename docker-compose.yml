@@ -1,4 +1,4 @@
-# EventGuard lab. Nothing here publishes a port to the host except, later, n8n.
+# EventGuard lab. Nothing here publishes a port to the host except n8n (127.0.0.1:5678).
 # Debug access to EventSim from the host: add -f docker-compose.dev.yml (binds 127.0.0.1 only).
 #
 # Each service gets an explicit list of variables (interpolated from .env), not the whole file:
@@ -46,10 +46,52 @@ services:
       - lab_internal
     restart: unless-stopped
 
+  # The chat and agent runtime (S2-02, FR-AGT-01). The only service published to the host, on
+  # loopback only. It joins lab_internal to reach the gateway and `egress` to reach the Gemini API.
+  # It holds the gateway bearer tokens (as encrypted n8n credentials) and never an EventSim token.
+  n8n:
+    image: n8nio/n8n:2.47.5@sha256:e29e9cc965a16d07d989f115f729f8a1c7aff58688d4850247fa495d4d7aae2f
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?set in .env}
+      N8N_HOST: localhost
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5678/
+      N8N_SECURE_COOKIE: "false"  # plain HTTP on loopback only
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_TEMPLATES_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_PUBLIC_API_DISABLED: "false"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      GENERIC_TIMEZONE: Europe/Paris
+      TZ: Europe/Paris
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: all
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+    ports:
+      - "127.0.0.1:5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - lab_internal
+      - egress
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
 networks:
   # No route to the internet or the host. Services that need Gemini (n8n) also join a second network.
   lab_internal:
     internal: true
+  # Internet access for n8n only (Gemini API). EventSim and the gateway are not on it.
+  egress: {}
 
 volumes:
   eventsim_data:
+  n8n_data:

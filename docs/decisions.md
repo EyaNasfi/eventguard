@@ -103,3 +103,22 @@ Format: one ADR per decision. Status is one of Proposed / Accepted / Superseded.
 - **Context.** The overnight front-end run (PL decision #3) was unattended. Pushing makes work public to the remote and starts CI, which Aya wants to control herself.
 - **Decision.** No `git push` and no `gh` command that changes the remote (PRs, merges, releases, settings) unless Aya explicitly asks for a push in the current session. Work stays on local branches; merging to `main` also needs her explicit go. The rule is repeated in `CLAUDE.md` so every agent session loads it.
 - **Consequences.** CI does not run on new work until Aya pushes; the agent runs the same commands locally and records the results.
+
+## ADR-005 — User identity from n8n to the gateway (S2-02)
+
+- **Date:** 2026-11-12 · **Status:** Accepted (spike, timebox half a day; done in about 1 h)
+- **Context.** The gateway must know who is calling (FR-GW-04, SR-14), and runs must be correlated in the logs. n8n 2.47.5 has two MCP nodes: *MCP Client Tool* (for the AI Agent) and *MCP Client* (standalone). Both take a server URL, a transport (`httpStreamable`) and one credential.
+- **Options tried** (`scripts/n8n_identity_spike.py`, with a throwaway header-echo container on the internal network):
+  1. **Per-user credential at run time.** The node's credential is chosen when the workflow is built, not per chat user. Credential types offered: Bearer, Header, Multiple Headers, MCP OAuth2, None.
+  2. **Expression in a credential header.** A Multiple Headers credential with `X-EG-Session = {{ $execution.id }}` was sent resolved (`x-eg-session: 2`). So credentials accept expressions, but only execution-level values were tested, not chat-user data.
+  3. **Session value in the endpoint URL.** The URL is a node parameter, so it accepts expressions: `http://echo:9000/mcp?eg_session={{ ... }}` arrived as `/mcp?eg_session=chat-session-123`.
+  4. **Real call.** Webhook → MCP Client (bearer = editor gateway token) → gateway → `get_event(12)` returned the real EventSim record. This replaces the "simulated" n8n check of S1-02.
+- **Evidence (no secrets).** Echo log of the probe: `POST /mcp?eg_session=chat-session-123`, headers `x-eg-session: 2`, `x-eg-static: static-marker`, `authorization: <redacted>`, body = MCP `initialize` with protocol `2025-11-25`, client `@n8n/n8n-nodes-langchain.mcpClient` 1.1. Real call: HTTP 200 with event 12 ("People Forum").
+- **Decision.**
+  - **Identity = one bearer credential per role** (reader, editor, admin), stored encrypted in n8n. **One workflow per role**, generated from a single template (`agent/workflows/generate.py`). The harness picks the role by calling that workflow's chat webhook.
+  - **Run correlation = the chat session id in the endpoint URL** (`/mcp?eg_session=<sessionId>`), set by expression from the chat trigger. The gateway logs it (S2-05). The n8n execution id may be added as a header for the same purpose.
+  - The session value is **not** an identity: it only labels log lines. Identity comes from the bearer only.
+- **Consequences.**
+  - No per-person identity: everyone using the editor workflow is "editor". Enough for the evaluation, where tasks are defined per role.
+  - The Python agent loop (FR-AGT-09) is not needed in Sprint 3 for identity reasons.
+  - If a query string is ever dropped by n8n, correlation falls back to timestamps; identity is unaffected.
