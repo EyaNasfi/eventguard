@@ -206,3 +206,30 @@ Branch `s2/S2-06-tasks-checkers`.
 - Accepted date spellings in RD-03 are a fixed list; an unusual but correct spelling would fail (logged as a checker issue if it happens).
 
 **Next:** S2-07 (agent client + smoke run).
+
+## 2026-11-13 02:00 — S2-07 Agent client + smoke run
+
+Branch `s2/S2-07-agent-client-smoke`.
+
+- **`bench/agent_client.py`** — for one task: reset EventSim to the task's seed and snapshot it (harness token from `.env`, host side only, never the agent's); call the role's chat webhook with a fresh session id (`<run>.<task>.<random>`); collect the state diff, the export, the outbox and this session's lines from `logs/tool_calls.jsonl`; run the checker; find the n8n execution of that session for tokens; return one record (task, pass/fail, reasons, failure class, config hash, model, served version, temperature, seed, tasks version, commit, latency, model calls, tokens, tools).
+- **`bench/smoke.py`** — `python -m bench.smoke --tasks …`: one probe call for the served model version, then the tasks, one line each in `results/smoke.jsonl` (gitignored), 65 s pause between tasks.
+- **Smoke run** (C0, `gemini-3.5-flash-lite` served as `gemini-3.5-flash-lite`, temperature 0.0, seed 42, `tasks-v1`, one repetition):
+
+| Task | Role | Run 1 (smoke-20261113T001846) | Run 2 (smoke-20261113T002053) | Tokens (completed run) | Classification |
+|---|---|---|---|---|---|
+| PRC-01 "How do I duplicate a club?" | reader | **PASS**, cites PROC-03, 1 tool call | — | 7,050 (2 calls) | — |
+| RD-01 conferences of 2026 | reader | **PASS** | — | 10,914 (3 calls) | — |
+| RD-02 People Forum venue | reader | **PASS** | — | 15,451 (4 calls) | — |
+| ARC-01 archive Marketing Forum 2026 | editor | FAIL: 429, 15 requests/minute | **PASS** (`archive_record` on event 14 only) | 18,220 (4 calls) | run 1: **infrastructure** (rate limit) |
+| DUP-01 duplicate Product Leaders Club | editor | FAIL: 429 mid-run, 1 speaker link missing | **FAIL**: all records right except the description, rewritten "2026" → "2027" | 104,532 (17 calls) | run 1: **infrastructure**; run 2: **agent error** (deviates from PROC-03: copy the description unchanged) |
+
+- **Final:** 4/5 tasks passed; the 1 remaining failure is an agent error. **No checker bug found.** The 2 infrastructure failures were the free-tier per-minute limit (`GenerateRequestsPerMinutePerProjectPerModel-FreeTier`, 15 for flash-lite); fixed by the 65 s pause.
+- **Tokens per run:** mean **31,233** over the 5 completed runs (median 15,451); reads and procedures 7–15k, archive 18k, duplicate 105k (17 model calls). About 97 % of tokens are prompt tokens (27 tool schemas + system prompt + history are resent on every call). This sets the Sprint 3 budget: 50 runs ≈ 1.6 M tokens and 150–850 requests.
+- **Observed C0 behaviour:** in DUP-01 run 2 the agent used the broad tool `raw_api_call` to `GET /procedures/PROC-03` (EventSim 405); harmless here, but it shows how loosely C0 uses broad tools.
+- **Gemini in this task:** 39 generation calls (2 probes + 37 model calls), 202,066 tokens.
+
+**How to verify:** manual guide L20.
+
+**Question for the project lead.** Should the duplicate checker accept a year written inside a copied description ("its 2026 club" → "its 2027 club")? PROC-03 and the reference script say "same description", so `tasks-v1` counts it as a failure. Changing it means `tasks-v2`.
+
+**Next:** S2-08 (docs).
