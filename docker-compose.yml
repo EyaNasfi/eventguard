@@ -1,5 +1,8 @@
 # EventGuard lab. Nothing here publishes a port to the host except, later, n8n.
 # Debug access to EventSim from the host: add -f docker-compose.dev.yml (binds 127.0.0.1 only).
+#
+# Each service gets an explicit list of variables (interpolated from .env), not the whole file:
+# EventSim never sees the Gemini key; the gateway never sees the Gemini key or the test token.
 name: eventguard
 
 services:
@@ -7,9 +10,38 @@ services:
     build:
       context: .
       dockerfile: eventsim/Dockerfile
-    env_file: .env
+    environment:
+      EVENTSIM_TOKEN_READER: ${EVENTSIM_TOKEN_READER:?set in .env}
+      EVENTSIM_TOKEN_EDITOR: ${EVENTSIM_TOKEN_EDITOR:?set in .env}
+      EVENTSIM_TOKEN_ADMIN: ${EVENTSIM_TOKEN_ADMIN:?set in .env}
+      EVENTSIM_TEST_TOKEN: ${EVENTSIM_TEST_TOKEN:?set in .env}
+      EVENTSIM_TEST_ENDPOINTS: ${EVENTSIM_TEST_ENDPOINTS:-false}
+      EVENTSIM_DEFAULT_SEED: ${EVENTSIM_DEFAULT_SEED:-42}
     volumes:
       - eventsim_data:/data
+    networks:
+      - lab_internal
+    restart: unless-stopped
+
+  # The only path from the agent to EventSim (FR-GW-01). MCP over Streamable HTTP at
+  # http://gateway:8100/mcp, internal network only (SR-14): no port is published, not even in dev.
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    environment:
+      EVENTSIM_URL: http://eventsim:8000
+      EVENTSIM_TOKEN_READER: ${EVENTSIM_TOKEN_READER:?set in .env}
+      EVENTSIM_TOKEN_EDITOR: ${EVENTSIM_TOKEN_EDITOR:?set in .env}
+      EVENTSIM_TOKEN_ADMIN: ${EVENTSIM_TOKEN_ADMIN:?set in .env}
+      GATEWAY_TOKEN_READER: ${GATEWAY_TOKEN_READER:?set in .env}
+      GATEWAY_TOKEN_EDITOR: ${GATEWAY_TOKEN_EDITOR:?set in .env}
+      GATEWAY_TOKEN_ADMIN: ${GATEWAY_TOKEN_ADMIN:?set in .env}
+      EVENTGUARD_CONFIG: ${EVENTGUARD_CONFIG:?set in .env}
+      GEMINI_MODEL: ${GEMINI_MODEL:?set in .env}  # part of the config hash, not a secret
+    depends_on:
+      eventsim:
+        condition: service_healthy
     networks:
       - lab_internal
     restart: unless-stopped

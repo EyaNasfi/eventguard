@@ -172,8 +172,41 @@ Remove-Item Env:EVENTGUARD_CONFIG; python -m config --env-only; "exit code: $LAS
 ```
 `--env-only` ignores `.env`, which itself contains `EVENTGUARD_CONFIG=C0`. Run `. .\scripts\load-env.ps1` again afterwards to restore the variable.
 
-### L10 Gateway / MCP (S1-02) — not built yet
-Commands will be added when S1-02 is done.
+### L10 Gateway / MCP (S1-02) — Rehearsed 2026-11-05
+The gateway has **no** port on the host, by design (SR-14), so every check runs inside Docker. Start the lab (main compose file only):
+```powershell
+docker compose up -d --build --wait
+docker compose ps        # expected: eventsim and gateway "(healthy)"; PORTS show 8000/tcp and 8100/tcp only, no 0.0.0.0
+```
+
+**Automated tests** (in-memory HTTP, see `docs/environment.md` for why):
+```powershell
+pytest tests/test_gateway.py tests/test_gateway_units.py -q --cov=gateway     # expected: 77 passed, gateway >= 80% (agent run: 95%)
+```
+
+**Live probe inside the Docker network** (a real MCP client in the gateway container; prints no secret):
+```powershell
+Get-Content scripts\gateway_probe.py -Raw | docker compose exec -T gateway python -
+```
+Expected output:
+
+| Line | Expected |
+|---|---|
+| `env has EVENTSIM_TEST_TOKEN` / `GEMINI_API_KEY` | `False` / `False` |
+| `no bearer` / `EventSim admin token as bearer` | `401` / `401` |
+| `[reader/auto] protocol …, N tools` | protocol `2026-07-28`, **27** tools |
+| `[reader] get_event 12` | `People Forum` |
+| `[reader] create_event` | `is_error=True: EventSim answered HTTP 403: role 'reader' cannot create events` |
+| `[reader] raw_api_call /_test/reset` and `/%5Ftest/snapshot` | `is_error=True: refused by the gateway …` |
+| `[editor/legacy] protocol …` | `2025-11-25` (old handshake, like n8n may use), 27 tools |
+| `[editor] create_event` | `is_error=False` (2027 is a draft edition) |
+
+The refusals also appear in `docker compose logs gateway` as `WARNING gateway.tools refused raw_api_call …`.
+
+The probe created one event in 2027, so reset afterwards:
+```powershell
+docker compose exec -T eventsim python -c "import os,httpx; print(httpx.post('http://localhost:8000/_test/reset', json={'seed': 42}, headers={'X-Test-Token': os.environ['EVENTSIM_TEST_TOKEN']}).status_code)"   # 200
+```
 
 ### L11 Agent in the n8n chat (S1-05) — not built yet
 Planned n8n address: `http://localhost:5678` (`<N8N_PORT>` = 5678, to be confirmed in S1-05). Club name for the duplication test: to be added with S1-05.
@@ -195,3 +228,14 @@ curl.exe -s -o NUL -w $W -X POST -H $ED "$U/events/12/archive"      # 200: edito
 curl.exe -s -o NUL -w $W -X POST -H $ED "$U/events/12/unarchive"    # 200: back to its exact previous status
 curl.exe -s -o NUL -w $W -X POST -H $ED "$U/sessions/1/archive"     # 403: editor never archives a session
 ```
+
+### L14 Gateway merged, allow-list aligned (S2-01) — Rehearsed 2026-11-12
+```powershell
+python -m pytest tests/test_gateway_units.py -k "allow_list_equals or names_only_registry" -v   # 5 passed
+python -m pytest tests/test_gateway.py -k "pl_decision_2 or every_test_route" -q              # 17 passed
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --wait
+docker compose ps        # eventsim 127.0.0.1:8000; gateway 8100/tcp only (no host port)
+Get-Content scripts\gateway_probe.py -Raw | docker compose exec -T gateway python -
+# expected: no bearer -> 401; 27 tools; reader create_event -> HTTP 403; /_test paths -> refused by the gateway
+```
+Afterwards reset the seed: `curl.exe -s -o NUL -w $W -X POST -H $T -H $J --data "@scripts/payloads/reset-42.json" "$U/_test/reset"`.

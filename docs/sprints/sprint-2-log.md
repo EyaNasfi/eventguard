@@ -80,3 +80,23 @@ Branch `s2/S2-00-facts-readme`.
 **Unsure.** "Usage limits" in the problem list: only the Gemini 503s are recorded in the repo; any other limit is marked "to confirm by Aya".
 
 **Next:** README rewrite (PL decision #5 §4), then S2-01.
+
+## 2026-11-12 23:25 — S2-01 Review and merge the gateway (FR-GW-01, FR-AGT-07)
+
+Branch `s2/S2-01-gateway-merge` = `origin/s1/S1-02-gateway-mcp` rebased onto local `main`.
+
+- **Rebase:** conflicts only in `README.md` (kept the new README, added a `gateway/` row) and `docs/decisions.md` (kept ADR-003 and PL decision #2 both). Code applied cleanly.
+- **Dependencies:** `mcp==2.3.0`, `httpx2==2.16.0` installed in `.venv`.
+- **Tests:** 182 passed after the rebase (the 77 gateway tests among them); 204 after the additions below.
+- **27 C0 tools vs PL decision #2:** the gateway forwards with the caller's own EventSim token, so EventSim's matrix applies. New `test_pl_decision_2_through_the_gateway` (14 rows: archive scope, patch scope, links in active editions, attendee routes, speaker/partner creation).
+- **`raw_api_call` vs `/_test/*`:** new test calls all 6 test routes × GET/POST × 3 roles: all refused, state unchanged. The 9 tricky spellings test (encoding, case, dot segments) was already there.
+- **Allow-list alignment:** C0 allow-list and registry were already identical (27 = 27). New `test_c0_allow_list_equals_the_gateway_registry` fails if they ever differ in either direction; `test_every_configuration_names_only_registry_tools` covers C1–C4.
+- **`.env`:** three random `GATEWAY_TOKEN_*` values added on this PC (never printed).
+- **Docker probe:** eventsim and gateway healthy; gateway `8100/tcp` only; no bearer → 401; EventSim token as bearer → 401; 27 tools with both protocol versions; reader `create_event` → HTTP 403; `/_test/reset` and `/%5Ftest/snapshot` → refused. EventSim reset to seed 42 afterwards.
+- **Coverage:** eventsim + gateway 97%.
+
+**How to verify:** manual guide L14.
+
+**Unsure.** The Avast `/mcp` loopback problem (ADR-003) was on Aya's PC; this PC was not tested for it because the gateway has no host port.
+
+**Next:** S2-02 (n8n in compose + identity spike).

@@ -81,6 +81,7 @@ Three things to try:
 |---|---|
 | `eventsim/` | The fake event platform (Python, FastAPI) |
 | `config/` | The C0–C4 configurations and their fingerprint (hash) |
+| `gateway/` | The checkpoint: an MCP server with 27 tools, one login per role |
 | `tests/` | Automatic tests |
 | `scripts/` | Helpers: load `.env`, state hash, first Gemini call |
 | `web/` | The web console (React), a testing tool |
