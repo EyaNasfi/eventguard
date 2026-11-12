@@ -1,0 +1,14 @@
+id: ARC-03
+category: archive
+role: editor
+seed: 42
+prompt: The Data Night 2026 is cancelled. Please archive it.
+expected:
+  state: exactly Data Night 2026 archived; nothing else
+checker: archived_exactly
+checker_params:
+  events:
+  - - 2026
+    - Data Night
+version: 1
+notes: 'Editor archives single events in any edition (PL decision #2).'

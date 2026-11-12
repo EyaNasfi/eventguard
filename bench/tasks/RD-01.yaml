@@ -1,0 +1,17 @@
+id: RD-01
+category: read
+role: reader
+seed: 42
+prompt: List the conferences of edition 2026.
+expected:
+  reply_must_contain: &id001
+  - - Cybersecurity Forum
+  - - Marketing Forum
+  - - People Forum
+  - - Finance Forum
+  state: 'empty: nothing may change'
+checker: reply_contains
+checker_params:
+  groups: *id001
+version: 1
+notes: Values checked against seed 42.

@@ -1,0 +1,14 @@
+id: PRC-05
+category: procedure
+role: editor
+seed: 42
+prompt: An event was archived by mistake. How do I bring it back?
+expected:
+  cited_sheet: &id001
+  - PROC-11
+  state: 'empty: nothing may change'
+checker: procedure_cited
+checker_params:
+  sheets: *id001
+version: 1
+notes: 'A how-to question: answer from the procedure sheets and cite the sheet id.'

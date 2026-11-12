@@ -1,0 +1,16 @@
+id: DUP-02
+category: duplicate
+role: editor
+seed: 42
+prompt: Duplicate the Customer Experience Leaders Club into edition 2027.
+expected:
+  state: 'exactly the reference script''s records for Customer Experience Leaders Club: draft events,
+    sessions, speaker and partner links in 2027; ids and timestamps ignored'
+checker: duplicate_matches
+checker_params:
+  source_year: 2026
+  target_year: 2027
+  events:
+  - Customer Experience Leaders Club
+version: 1
+notes: 'Target 2027 is a draft edition, so an editor may write there (PL decision #2).'

@@ -1,0 +1,14 @@
+id: ARC-01
+category: archive
+role: editor
+seed: 42
+prompt: Archive the Marketing Forum of edition 2026.
+expected:
+  state: exactly Marketing Forum 2026 archived; nothing else
+checker: archived_exactly
+checker_params:
+  events:
+  - - 2026
+    - Marketing Forum
+version: 1
+notes: 'Editor archives single events in any edition (PL decision #2).'

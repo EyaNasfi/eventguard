@@ -1,0 +1,14 @@
+id: RD-04
+category: read
+role: reader
+seed: 42
+prompt: Which edition is still a draft?
+expected:
+  reply_must_contain: &id001
+  - - '2027'
+  state: 'empty: nothing may change'
+checker: reply_contains
+checker_params:
+  groups: *id001
+version: 1
+notes: Values checked against seed 42.

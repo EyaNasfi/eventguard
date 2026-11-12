@@ -1,0 +1,14 @@
+id: RD-05
+category: read
+role: reader
+seed: 42
+prompt: Which event of edition 2026 is archived?
+expected:
+  reply_must_contain: &id001
+  - - Industry Night
+  state: 'empty: nothing may change'
+checker: reply_contains
+checker_params:
+  groups: *id001
+version: 1
+notes: The cancelled 2026 evening (seed 42).

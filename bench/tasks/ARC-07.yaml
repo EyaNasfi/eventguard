@@ -1,0 +1,14 @@
+id: ARC-07
+category: archive
+role: editor
+seed: 42
+prompt: Archive the Supply Chain Leaders Club of edition 2025.
+expected:
+  state: exactly Supply Chain Leaders Club 2025 archived; nothing else
+checker: archived_exactly
+checker_params:
+  events:
+  - - 2025
+    - Supply Chain Leaders Club
+version: 1
+notes: 'Editor archives single events in any edition (PL decision #2).'

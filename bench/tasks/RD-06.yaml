@@ -1,0 +1,16 @@
+id: RD-06
+category: read
+role: reader
+seed: 42
+prompt: Which partners are in the gold tier?
+expected:
+  reply_must_contain: &id001
+  - - Ambrelle Conseil
+  - - Marbrel Industries
+  - - Ostral Group
+  state: 'empty: nothing may change'
+checker: reply_contains
+checker_params:
+  groups: *id001
+version: 1
+notes: Values checked against seed 42.

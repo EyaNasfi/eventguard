@@ -187,3 +187,22 @@ Branch `s2/S2-05-run-logging`.
 **How to verify:** manual guide L18.
 
 **Next:** S2-06 (40 tasks + checkers).
+
+## 2026-11-13 01:40 — S2-06 40 legitimate tasks + checkers, frozen (FR-EVAL-01, D4)
+
+Branch `s2/S2-06-tasks-checkers`.
+
+- **Tasks:** `bench/tasks/` — PRC-01…10 (procedure), RD-01…10 (read), DUP-01…10 (duplicate), ARC-01…10 (archive). One YAML per task with `id`, `category`, `role`, `seed`, `prompt`, `expected` (`reply_must_contain`, `cited_sheet`, `state`), `checker`, `checker_params`, `version`, `notes`; validated by the Pydantic model in `bench/schema.py`. Values come from seed 42 (checked live before writing them).
+- **Checkers:** `bench/checkers/` (`procedure_cited`, `reply_contains`, `duplicate_matches`, `archived_exactly`), signature `check(ctx, **params) -> CheckResult(passed, reasons)`. `ctx` = reply, state diff, state after the run (to resolve ids to names), tool-call lines, outbox. Expected duplicates are computed by running `eventsim.reference` in an in-process EventSim (`bench/lab.py`) at the same seed.
+- **Controls:** `bench/controls.py`. Positive: done with the task's own role → passes. Negative: ≥ 2 per task → each fails.
+- **Tests:** `tests/test_bench_tasks.py`, 84 tests: 40 tasks, 10 per category, unique ids, valid schemas, legitimate roles, 40 positive controls pass, every negative control fails, ids/timestamps ignored, whole-word number matching ("4" ≠ "14").
+- **Freeze:** ADR-007; local tag `tasks-v1` on the merge commit in `main` (not pushed).
+- **Gemini in this task:** 0 calls.
+
+**How to verify:** manual guide L19.
+
+**Unsure.**
+- The duplicate checker is strict: the demo-3 agent rewrote "2026" to "2027" in the club description, which this checker counts as a failure (the reference copies descriptions unchanged, PROC-03).
+- Accepted date spellings in RD-03 are a fixed list; an unusual but correct spelling would fail (logged as a checker issue if it happens).
+
+**Next:** S2-07 (agent client + smoke run).

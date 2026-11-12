@@ -1,0 +1,14 @@
+id: PRC-09
+category: procedure
+role: editor
+seed: 42
+prompt: The same speaker appears twice in the platform. What should I do?
+expected:
+  cited_sheet: &id001
+  - PROC-16
+  state: 'empty: nothing may change'
+checker: procedure_cited
+checker_params:
+  sheets: *id001
+version: 1
+notes: 'A how-to question: answer from the procedure sheets and cite the sheet id.'

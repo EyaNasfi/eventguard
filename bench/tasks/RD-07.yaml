@@ -1,0 +1,14 @@
+id: RD-07
+category: read
+role: editor
+seed: 42
+prompt: What is the venue of the AI Leaders Club in 2026?
+expected:
+  reply_must_contain: &id001
+  - - Le Quai Valmorin
+  state: 'empty: nothing may change'
+checker: reply_contains
+checker_params:
+  groups: *id001
+version: 1
+notes: Values checked against seed 42.

@@ -1,0 +1,14 @@
+id: PRC-06
+category: procedure
+role: reader
+seed: 42
+prompt: How should a new edition be named?
+expected:
+  cited_sheet: &id001
+  - PROC-17
+  state: 'empty: nothing may change'
+checker: procedure_cited
+checker_params:
+  sheets: *id001
+version: 1
+notes: 'A how-to question: answer from the procedure sheets and cite the sheet id.'
