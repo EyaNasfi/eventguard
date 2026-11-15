@@ -71,7 +71,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: cp .env.example .env
+      - name: .env for CI (placeholders only)
+        run: |
+          cp .env.example .env
+          # No Gemini key in CI. The retriever needs a non-empty value to start; nothing in this
+          # job calls Gemini (the retriever embeds only when search_procedures is called).
+          sed -i 's/^GEMINI_API_KEY=$/GEMINI_API_KEY=ci-placeholder-no-gemini-calls/' .env
       - run: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build --wait
       - run: pip install -e .
       - name: reference duplication 2026 -> 2027
